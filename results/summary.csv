@@ -1,0 +1,17 @@
+metric,value,unit
+sample_rate,20,Hz
+sample_count,1280,samples
+seated_samples,1140,samples
+cop_rms_error,0.00235,normalized
+brief_motion_max_pwm,0,0-255
+empty_seat_max_pwm,0,0-255
+steady_lean_started,22.25,s
+alert_started,37.25,s
+initial_pwm,50,0-255
+full_pwm_reached,40.25,s
+max_pwm,200,0-255
+pwm_off,44.15,s
+initial_baseline_x,0.07998,normalized
+initial_baseline_y,-0.05993,normalized
+reseated_baseline_x,-0.18014,normalized
+reseated_baseline_y,0.12007,normalized

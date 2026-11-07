@@ -1,8 +1,16 @@
-"""Simulate the four load sensors of a seat cushion at 20 Hz."""
+"""Simulate load sensing and haptic feedback for a seat cushion at 20 Hz."""
 
+import argparse
+import csv
 from dataclasses import dataclass
+from pathlib import Path
 
+import matplotlib
 import numpy as np
+
+matplotlib.use("Agg")
+from matplotlib import pyplot as plt
+from matplotlib.patches import Circle, Patch
 
 
 SAMPLE_RATE_HZ = 20
@@ -159,19 +167,121 @@ def analyze_posture(loads_n: np.ndarray) -> Posture:
     return Posture(baseline_xy, relative_xy, speed_per_s, steady_s, state, pwm)
 
 
-def main() -> None:
-    scenario = make_scenario()
+def summarize(scenario: Scenario, posture: Posture) -> list[tuple[str, str, str]]:
     centers_xy = pressure_center(scenario.loads_n)
     seated = np.isfinite(centers_xy[:, 0])
     error = np.linalg.norm(centers_xy[seated] - scenario.true_xy[seated], axis=1)
-    print(f"Samples: {len(seated)}, seated: {np.count_nonzero(seated)}")
-    print(f"Center-of-pressure RMS error: {np.sqrt(np.mean(error**2)):.5f}")
+    first, last = np.flatnonzero(posture.pwm)[[0, -1]]
+    start = first - HOLD_FRAMES
+    full_pwm = np.flatnonzero(posture.pwm == PWM_MAX)[0]
+    initial = posture.baseline_xy[scenario.phase == "neutral"][0]
+    reseated = posture.baseline_xy[scenario.phase == "reseated"][0]
+    brief = np.char.startswith(scenario.phase, "brief")
+
+    return [
+        ("sample_rate", str(SAMPLE_RATE_HZ), "Hz"),
+        ("sample_count", str(len(seated)), "samples"),
+        ("seated_samples", str(np.count_nonzero(seated)), "samples"),
+        ("cop_rms_error", f"{np.sqrt(np.mean(error**2)):.5f}", "normalized"),
+        ("brief_motion_max_pwm", str(posture.pwm[brief].max()), "0-255"),
+        ("empty_seat_max_pwm", str(posture.pwm[~seated].max()), "0-255"),
+        ("steady_lean_started", f"{scenario.time_s[start]:.2f}", "s"),
+        ("alert_started", f"{scenario.time_s[first]:.2f}", "s"),
+        ("initial_pwm", str(posture.pwm[first]), "0-255"),
+        ("full_pwm_reached", f"{scenario.time_s[full_pwm]:.2f}", "s"),
+        ("max_pwm", str(posture.pwm.max()), "0-255"),
+        ("pwm_off", f"{(last + 1) / SAMPLE_RATE_HZ:.2f}", "s"),
+        ("initial_baseline_x", f"{initial[0]:.5f}", "normalized"),
+        ("initial_baseline_y", f"{initial[1]:.5f}", "normalized"),
+        ("reseated_baseline_x", f"{reseated[0]:.5f}", "normalized"),
+        ("reseated_baseline_y", f"{reseated[1]:.5f}", "normalized"),
+    ]
+
+
+def plot_results(scenario: Scenario, posture: Posture, path: Path) -> None:
+    fig = plt.figure(figsize=(12.4, 8.2), facecolor="#f5f7fb", layout="constrained")
+    grid = fig.add_gridspec(3, 2, height_ratios=(1.0, 0.78, 0.9))
+    loads_ax = fig.add_subplot(grid[0, :])
+    trajectory_ax = fig.add_subplot(grid[1:, 0])
+    distance_ax = fig.add_subplot(grid[1, 1], sharex=loads_ax)
+    haptic_ax = fig.add_subplot(grid[2, 1], sharex=loads_ax)
+    fig.suptitle("Smart posture cushion  |  Four-sensor simulation",
+                 x=0.02, ha="left", fontsize=20, fontweight="bold", color="#172b45")
+
+    for ax in (loads_ax, trajectory_ax, distance_ax, haptic_ax):
+        ax.spines[["top", "right"]].set_visible(False)
+        ax.spines[["bottom", "left"]].set_color("#9aaabd")
+        ax.grid(axis="y", alpha=0.22)
+        ax.set_axisbelow(True)
+
+    time_s = scenario.time_s
+    end_s = len(time_s) / SAMPLE_RATE_HZ
+    for index, (name, color) in enumerate((
+        ("Rear left", "#386cb0"), ("Rear right", "#6e59a5"),
+        ("Front left", "#008779"), ("Front right", "#c16420"),
+    )):
+        loads_ax.plot(time_s, scenario.loads_n[:, index], label=name, color=color)
+    loads_ax.set(title="Four corner loads", ylabel="Load (N)", xlim=(0, end_s), ylim=(-10, 310))
+    loads_ax.legend(loc="upper right", ncol=4, frameon=False)
+
+    brief = np.char.startswith(scenario.phase, "brief")
+    sustained = np.isin(scenario.phase, ("lean_transition", "sustained_lean", "recovery"))
+    trajectory_ax.add_patch(Circle((0, 0), DISTANCE_LIMIT, linewidth=1.4,
+                                   facecolor="#e3f5ee", edgecolor="#21836c",
+                                   label="Allowed region"))
+    # The phase masks keep disjoint sections from being joined by plot lines.
+    for mask, label, color in (
+        (brief, "Brief movement", "#386cb0"),
+        (sustained, "Sustained lean and return", "#ce583a"),
+    ):
+        xy = np.where(mask[:, None], posture.relative_xy, np.nan)
+        trajectory_ax.plot(xy[:, 0], xy[:, 1], color=color, lw=2.2, label=label)
+    trajectory_ax.scatter(0, 0, color="#172b45", s=25, zorder=4, label="Personal baseline")
+    trajectory_ax.set(title="Center-of-pressure path relative to baseline",
+                      xlabel="Left (−) / Right (+)", ylabel="Rear (−) / Front (+)",
+                      xlim=(-0.37, 0.60), ylim=(-0.38, 0.38), aspect="equal")
+    trajectory_ax.legend(loc="lower left", framealpha=0.94, edgecolor="#e3e9ef", fontsize=8)
+
+    distance = np.linalg.norm(posture.relative_xy, axis=1)
+    distance_ax.plot(time_s, distance, color="#386cb0", linewidth=2)
+    distance_ax.axhline(DISTANCE_LIMIT, color="#73859b", ls="--", label="Distance limit")
+    distance_ax.set(title="Distance from personal baseline", ylabel="Normalized distance")
+    distance_ax.legend(loc="upper right", frameon=False, fontsize=8)
+    distance_ax.tick_params(labelbottom=False)
+
+    state_colors = {
+        "vacant": "#c8d1df", "calibrating": "#b9a6dd", "balanced": "#9bd5c0",
+        "moving": "#99bae0", "watching": "#f2d58a", "alert": "#ee9a82",
+    }
+    change = np.flatnonzero(posture.state[1:] != posture.state[:-1]) + 1
+    for start, stop in zip(np.r_[0, change], np.r_[change, len(time_s)], strict=True):
+        haptic_ax.axvspan(start / SAMPLE_RATE_HZ, stop / SAMPLE_RATE_HZ,
+                         color=state_colors[posture.state[start]], alpha=0.48, linewidth=0)
+    haptic_ax.step(time_s, posture.pwm, where="post", color="#a13f2c", lw=2)
+    haptic_ax.set(title="Detection state and virtual haptic output",
+                  xlabel="Time (s)", ylabel="PWM (0–255)", ylim=(-6, 225))
+    haptic_ax.legend(handles=[Patch(color=color, label=name.title(), alpha=0.65)
+                              for name, color in state_colors.items()],
+                     loc="upper left", ncol=3, fontsize=7.6, frameon=False)
+
+    fig.savefig(path, dpi=150)
+    plt.close(fig)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output-dir", type=Path, default=Path("results"))
+    output_dir = parser.parse_args().output_dir
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    scenario = make_scenario()
     posture = analyze_posture(scenario.loads_n)
-    alerts = np.flatnonzero(posture.state == "alert")
-    if alerts.size:
-        first, last = alerts[0], alerts[-1]
-        print(f"Alert: {scenario.time_s[first]:.2f}–{scenario.time_s[last]:.2f} s")
-    print(f"Maximum virtual PWM: {posture.pwm.max()}")
+    with (output_dir / "summary.csv").open("w", newline="", encoding="utf-8") as stream:
+        writer = csv.writer(stream, lineterminator="\n")
+        writer.writerow(("metric", "value", "unit"))
+        writer.writerows(summarize(scenario, posture))
+    plot_results(scenario, posture, output_dir / "overview.png")
+    print(f"Saved overview.png and summary.csv to {output_dir}")
 
 
 if __name__ == "__main__":
