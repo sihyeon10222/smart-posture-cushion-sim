@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>스마트 방석 시뮬레이터</title>
+  <title>자세 교정 스마트 방석 시뮬레이터</title>
   <style>
     :root {
       color-scheme: light;
@@ -32,6 +32,25 @@
       display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
     }
     .toolbar { margin: 12px 0 15px; }
+    .stage {
+      position: relative; isolation: isolate; margin: 14px 0 0; overflow: hidden;
+      color: #eef6fb; border-radius: 13px; background: radial-gradient(ellipse at 50% 60%, #253f56, #14253a 72%);
+    }
+    .stage-heading { position: absolute; inset: 13px 13px auto; display: flex; justify-content: space-between; gap: 10px; align-items: start; }
+    .stage-label { color: #a7ccc9; font-size: .71rem; letter-spacing: .12em; font-weight: 750; }
+    .stage-state { color: #eef6fb; font-size: .89rem; font-weight: 750; }
+    .stage[data-alert="true"] .stage-state { color: #ffd7a3; }
+    .stage button { color: #eef6fb; border-color: #527084; background: #203850; font-size: .79rem; min-height: 32px; padding: 3px 9px; }
+    .stage button:hover { background: #324e66; }
+    .stage button:focus-visible { outline-color: #6ee7cf; }
+    .stage canvas { display: block; width: 100%; height: clamp(290px, 45vw, 400px); }
+    .stage-loads { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: #3e566c; border-top: 1px solid #3e566c; }
+    .stage-load { min-width: 0; padding: 9px 12px 12px; background: #1c3046; }
+    .stage-load p { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 8px; color: #d7e7ef; font-size: .76rem; }
+    .stage-load strong { color: #e5fffa; font-variant-numeric: tabular-nums; }
+    .load-bar { display: block; height: 3px; border-radius: 99px; margin-top: 6px; background: #435b6f; overflow: hidden; }
+    .load-bar i { display: block; height: 100%; width: 0%; background: #69e2ce; }
+    .stage-note { margin-top: 6px; }
     .range-title, .readout-title { justify-content: space-between; }
     button, select { font: inherit; min-height: 40px; }
     button, select {
@@ -81,6 +100,7 @@
     .track-info { margin-top: 4px; font-size: .89rem; color: var(--muted); }
     footer { margin-top: 14px; }
     @media (max-width: 670px) { .grid { grid-template-columns: 1fr; } }
+    @media (max-width: 550px) { .stage-loads { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 380px) { .loads dl { gap: 6px; font-size: .92rem; } }
   </style>
 </head>
@@ -88,7 +108,7 @@
   <main>
     <header>
       <p class="course">물리학과 AI 코딩 과제 07</p>
-      <h1>스마트 방석 시뮬레이터</h1>
+      <h1>자세 교정 스마트 방석 시뮬레이터</h1>
       <p>네 모서리의 하중으로 압력 중심을 계산하고, 쏠림이 지속될 때 가상 진동을 켭니다.</p>
     </header>
 
@@ -105,6 +125,15 @@
         </select>
         <button id="reset" type="button">초기화</button>
       </div>
+      <div class="stage" id="seat-stage" data-alert="false">
+        <div class="stage-heading">
+          <div><p class="stage-label">3D 착석 장면</p><p class="stage-state" id="stage-state">미착석</p></div>
+          <button id="view-angle" type="button" aria-pressed="false">반대쪽에서 보기</button>
+        </div>
+        <canvas id="seat-scene" role="img" aria-label="기울어지는 착석 모형과 방석의 네 하중 센서, 주황색 진동 표시"></canvas>
+        <div class="stage-loads" id="stage-loads"></div>
+      </div>
+      <p class="hint stage-note">착석 모형의 기울기는 압력 중심 이동을 강조해 나타냅니다. 가상 진동이 켜지면 방석 옆에 주황색 파형이 나타납니다.</p>
       <div class="range-title"><label for="time">시나리오 시간</label><output id="clock" for="time" aria-live="off">0.00초</output></div>
       <input id="time" type="range" min="0" max="63.95" step="0.05" value="0">
       <div class="jump" role="group" aria-label="관찰할 구간으로 이동">
@@ -310,6 +339,27 @@
     const holdSlider = byId("hold");
     const speedSelect = byId("speed");
     const playButton = byId("play");
+    const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+    const seatScene = byId("seat-scene");
+    const sceneContext = seatScene.getContext("2d");
+    const viewButton = byId("view-angle");
+    const stage = byId("seat-stage");
+    const stageState = byId("stage-state");
+    const stageLoads = ["왼쪽 뒤", "오른쪽 뒤", "왼쪽 앞", "오른쪽 앞"].map(name => {
+      const cell = document.createElement("div");
+      cell.className = "stage-load";
+      const label = document.createElement("p");
+      const value = document.createElement("strong");
+      label.append(name, value);
+      const bar = document.createElement("span");
+      bar.className = "load-bar";
+      bar.setAttribute("aria-hidden", "true");
+      const fill = document.createElement("i");
+      bar.append(fill);
+      cell.append(label, bar);
+      byId("stage-loads").append(cell);
+      return {value, fill};
+    });
     const fields = Object.fromEntries(
       ["clock", "state", "phase", "pwm", "elapsed", "distance", "velocity", "center-xy", "baseline-xy",
         "zone", "baseline", "center", "cursor", "pwm-path", "hold-value", "alert-summary"]
@@ -324,6 +374,175 @@
     let animation = null;
     let previousTime = null;
     let playbackFrame = 0;
+    let azimuth = 0.56;
+
+    const dot = (a, b) => a.reduce((total, item, i) => total + item * b[i], 0);
+    const minus = (a, b) => a.map((item, i) => item - b[i]);
+    const cross = ([x, y, z], [u, v, w]) => [y * w - z * v, z * u - x * w, x * v - y * u];
+    const unit = v => v.map(item => item / Math.hypot(...v));
+    const palette = {
+      frame: [75, 109, 137], seat: [60, 98, 121], cushion: [54, 179, 160],
+      pants: [70, 120, 179], top: [127, 185, 233], skin: [236, 186, 152],
+      shoes: [43, 64, 101], hair: [55, 58, 89]
+    };
+    const light = unit([-0.7, 1, 0.9]);
+
+    function drawSeat(frame, seconds) {
+      if (!sceneContext) return;
+      const width = seatScene.clientWidth;
+      const height = seatScene.clientHeight;
+      if (!width || !height) return;
+      const density = Math.min(devicePixelRatio || 1, 2);
+      const pixelsWide = Math.round(width * density);
+      const pixelsHigh = Math.round(height * density);
+      if (seatScene.width !== pixelsWide || seatScene.height !== pixelsHigh) {
+        seatScene.width = pixelsWide;
+        seatScene.height = pixelsHigh;
+      }
+      const ctx = sceneContext;
+      ctx.setTransform(density, 0, 0, density, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+
+      const scale = Math.min(width / 4.5, height / 3.9);
+      const yawSin = Math.sin(azimuth);
+      const yawCos = Math.cos(azimuth);
+      const elevationSin = 0.46;
+      const elevationCos = Math.sqrt(1 - elevationSin ** 2);
+      const camera = [8 * yawSin * elevationCos, 1.52 + 8 * elevationSin, 8 * yawCos * elevationCos];
+      function project([x, y, z]) {
+        const forward = yawSin * x + yawCos * z;
+        const depth = elevationSin * (y - 1.52) + elevationCos * forward;
+        const zoom = scale * 8 / (8 - depth);
+        return [width / 2 + (yawCos * x - yawSin * z) * zoom,
+          height * 0.46 - (elevationCos * (y - 1.52) - elevationSin * forward) * zoom, depth];
+      }
+      function path(points) {
+        ctx.beginPath();
+        points.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+      }
+      function line(points, stroke, weight = 1) {
+        path(points.map(project));
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = weight;
+        ctx.stroke();
+      }
+
+      for (let offset = -2.5; offset <= 2.5; offset += 0.5) {
+        line([[offset, 0, -2.5], [offset, 0, 2.5]], "#7a9fb22a");
+        line([[-2.5, 0, offset], [2.5, 0, offset]], "#7a9fb22a");
+      }
+      const [shadowX, shadowY] = project([0, 0, 0.25]);
+      ctx.beginPath();
+      ctx.ellipse(shadowX, shadowY, scale * 1.34, scale * 0.48, 0, 0, 2 * Math.PI);
+      ctx.fillStyle = "#101a2a77";
+      ctx.fill();
+
+      // Collect the visible mesh faces, then paint from farthest to nearest.
+      const faces = [];
+      function face(points, normal, color) {
+        if (dot(normal, minus(camera, points[0])) <= 0) return;
+        const screen = points.map(project);
+        const depth = screen.reduce((total, point) => total + point[2], 0) / screen.length;
+        const shade = 0.61 + 0.41 * Math.max(0, dot(unit(normal), light));
+        faces.push({screen, depth, color: "rgb(" + color.map(value => Math.round(value * shade)).join(",") + ")"});
+      }
+      function box(x, y, z, w, h, d, color) {
+        const points = [[-1,-1,-1], [1,-1,-1], [1,1,-1], [-1,1,-1], [-1,-1,1], [1,-1,1], [1,1,1], [-1,1,1]]
+          .map(([a, b, c]) => [x + a * w / 2, y + b * h / 2, z + c * d / 2]);
+        for (const [corners, normal] of [
+          [[0,1,2,3], [0,0,-1]], [[4,5,6,7], [0,0,1]], [[0,3,7,4], [-1,0,0]],
+          [[1,5,6,2], [1,0,0]], [[0,4,5,1], [0,-1,0]], [[3,2,6,7], [0,1,0]]
+        ]) face(corners.map(index => points[index]), normal, color);
+      }
+      function volume(start, end, radius, thickness, color) {
+        const direction = minus(end, start);
+        const axis = unit(direction);
+        const across = unit(cross(axis, Math.abs(axis[2]) < 0.8 ? [0,0,1] : [1,0,0]));
+        const side = cross(axis, across);
+        const middle = start.map((item, i) => item + direction[i] / 2);
+        const rings = Array.from({length: 7}, (_, lat) => Array.from({length: 10}, (_, lon) => {
+          const theta = Math.PI * lat / 6;
+          const phi = 2 * Math.PI * lon / 10;
+          return middle.map((item, i) => item + direction[i] * Math.cos(theta) / 2 + Math.sin(theta) *
+            (across[i] * radius * Math.cos(phi) + side[i] * thickness * Math.sin(phi)));
+        }));
+        for (let lat = 0; lat < rings.length - 1; lat++) {
+          for (let lon = 0; lon < rings[lat].length; lon++) {
+            const next = (lon + 1) % rings[lat].length;
+            const points = [rings[lat][lon], rings[lat][next], rings[lat + 1][next], rings[lat + 1][lon]];
+            const normal = [0, 1, 2].map(i => points.reduce((sum, p) => sum + p[i] - middle[i], 0));
+            face(points, normal, color);
+          }
+        }
+      }
+
+      for (const [x, z] of SENSORS) box(0.82 * x, 0.44, 0.65 * z, 0.12, 0.88, 0.12, palette.frame);
+      box(0, 0.93, 0, 2.04, 0.18, 1.68, palette.seat);
+      for (const x of [-0.76, 0.76]) box(x, 1.52, -0.76, 0.09, 1.2, 0.1, palette.frame);
+      box(0, 1.97, -0.78, 1.84, 0.67, 0.14, palette.frame);
+      const strength = frame.pwm / PWM_MAX;
+      // Display vibration is tied to scenario time, independently of the physical model.
+      const shake = strength && !reducedMotion.matches ? 0.036 * strength * Math.sin(seconds * 7 * Math.PI) : 0;
+      box(shake, 1.04, 0, 2.07, 0.11, 1.70, palette.seat);
+      box(shake, 1.125, 0, 2.1, 0.13, 1.72, palette.cushion);
+
+      if (frame.center) {
+        const [x, z] = frame.center;
+        const hip = [shake + 0.18 * x, 1.31, 0.14 * z - 0.06];
+        const shoulder = [shake + 0.91 * x, 2.30, 0.55 * z - 0.09];
+        const [sx, sy, sz] = shoulder;
+        volume([hip[0], 1.15, hip[2]], [hip[0], 1.61, hip[2]], 0.36, 0.25, palette.pants);
+        volume(hip, shoulder, 0.38, 0.22, palette.top);
+        volume([sx, sy - 0.12, sz], [sx, sy + 0.16, sz], 0.10, 0.10, palette.skin);
+        volume([sx + 0.08 * x, sy + 0.04, sz], [sx + 0.2 * x, sy + 0.52, sz + 0.02], 0.222, 0.20, palette.skin);
+        volume([sx + 0.2 * x, sy + 0.37, sz - 0.04], [sx + 0.2 * x, sy + 0.55, sz - 0.035], 0.208, 0.18, palette.hair);
+        for (const side of [-1, 1]) {
+          const kneeX = hip[0] + 0.25 * side;
+          volume([kneeX, 1.29, hip[2] - 0.06], [kneeX + 0.03 * side, 1.14, 0.99], 0.16, 0.16, palette.pants);
+          volume([kneeX + 0.03 * side, 1.26, 0.80], [kneeX + 0.02 * side, 0.13, 1.04], 0.145, 0.135, palette.pants);
+          volume([kneeX, 0.20, 0.80], [kneeX + 0.03 * side, 0.15, 1.33], 0.127, 0.115, palette.shoes);
+          const elbow = [sx + 0.40 * side, 1.67, sz + 0.26];
+          volume([sx + 0.29 * side, sy - 0.09, sz], elbow, 0.126, 0.12, palette.top);
+          volume(elbow, [kneeX + 0.07 * side, 1.34, 0.66], 0.096, 0.086, palette.skin);
+        }
+      }
+
+      faces.sort((a, b) => a.depth - b.depth);
+      for (const surface of faces) {
+        path(surface.screen);
+        ctx.closePath();
+        ctx.fillStyle = ctx.strokeStyle = surface.color;
+        ctx.lineWidth = 0.65;
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      SENSORS.forEach(([x, z], i) => {
+        const ratio = Math.min(1, frame.loads[i] / 280);
+        const point = [shake + 0.94 * x, 1.195, 0.75 * z];
+        const top = [point[0], point[1] + 0.48 * ratio, point[2]];
+        line([point, top], "#98f5de", 1.4);
+        const [cx, cy] = project(top);
+        ctx.beginPath();
+        ctx.arc(cx, cy, 3 + 3 * ratio, 0, 2 * Math.PI);
+        ctx.fillStyle = ratio > 0.03 ? "#adfae6" : "#335c6a";
+        ctx.fill();
+        ctx.strokeStyle = "#aaf5e7";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      });
+
+      if (strength) {
+        for (const side of [-1, 1]) {
+          const count = 1 + Math.round(strength * 2);
+          for (let i = 0; i < count; i++) {
+            const offset = 0.13 * i + Math.abs(shake) * 2;
+            line([[side * (1.22 + offset), 1.37, 0.04], [side * (1.31 + offset), 1.23, 0.04],
+              [side * (1.31 + offset), 1.07, 0.04], [side * (1.22 + offset), 0.92, 0.04]], "#ffc183", 1.8);
+          }
+        }
+      }
+    }
 
     function showPoint(element, xy) {
       element.setAttribute("visibility", xy ? "visible" : "hidden");
@@ -348,12 +567,17 @@
       fields.velocity.textContent = frame.speed === null ? "—" : frame.speed.toFixed(3) + " /s";
       fields["center-xy"].textContent = coordinates(frame.center);
       fields["baseline-xy"].textContent = coordinates(frame.baseline);
+      stage.dataset.alert = String(frame.pwm > 0);
+      stageState.textContent = frame.pwm ? "가상 진동 · PWM " + frame.pwm : STATE_LABELS[frame.state];
+      drawSeat(frame, seconds);
       showPoint(fields.zone, frame.baseline);
       showPoint(fields.baseline, frame.baseline);
       showPoint(fields.center, frame.center);
       frame.loads.forEach((load, i) => {
         loadFields[i].textContent = load.toFixed(1) + " N";
         sensorDots[i].setAttribute("fill-opacity", 0.12 + 0.88 * Math.min(1, load / 250));
+        stageLoads[i].value.textContent = load.toFixed(1) + " N";
+        stageLoads[i].fill.style.width = Math.min(100, load / 2.8) + "%";
       });
       fields.cursor.setAttribute("x1", xOnTimeline(index));
       fields.cursor.setAttribute("x2", xOnTimeline(index));
@@ -405,20 +629,25 @@
       showFrame(Math.min(lastSample, Math.round(seconds * SAMPLE_RATE)));
     }
 
-    playButton.addEventListener("click", () => {
-      if (animation !== null) {
-        pause();
-        return;
-      }
+    function startPlayback() {
       if (currentIndex === lastSample) showFrame(0);
       playbackFrame = currentIndex;
       playButton.textContent = "일시정지";
       animation = requestAnimationFrame(tick);
+    }
+
+    playButton.addEventListener("click", () => animation === null ? startPlayback() : pause());
+    viewButton.addEventListener("click", () => {
+      azimuth = -azimuth;
+      viewButton.setAttribute("aria-pressed", String(azimuth < 0));
+      drawSeat(results[currentIndex], currentIndex / SAMPLE_RATE);
     });
     byId("reset").addEventListener("click", () => {
       seek(0);
       speedSelect.value = "2";
       holdSlider.value = "15";
+      azimuth = 0.56;
+      viewButton.setAttribute("aria-pressed", "false");
       recompute();
     });
     timeSlider.addEventListener("input", () => seek(Number(timeSlider.value)));
@@ -428,6 +657,11 @@
     });
     timeSlider.max = lastSample / SAMPLE_RATE;
     recompute();
+    if (window.ResizeObserver) {
+      const resize = new ResizeObserver(() => drawSeat(results[currentIndex], currentIndex / SAMPLE_RATE));
+      resize.observe(seatScene);
+    }
+    if (!reducedMotion.matches) startPlayback();
   </script>
 </body>
 </html>
