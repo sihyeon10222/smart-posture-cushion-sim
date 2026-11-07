@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>스마트 방석 시뮬레이터</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f7fa;
+      --ink: #172b45;
+      --muted: #4b5f72;
+      --line: #d6e1e8;
+      --teal: #0f766e;
+      --soft: #e1f3ef;
+      --alert: #a53e29;
+      --alert-bg: #fcebe4;
+      font-family: system-ui, -apple-system, "Malgun Gothic", sans-serif;
+      line-height: 1.5;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); }
+    main { max-width: 1060px; margin: auto; padding: clamp(16px, 4vw, 42px); }
+    header { margin-bottom: 22px; }
+    h1, h2, p { margin: 0; }
+    h1 { font-size: clamp(1.75rem, 4.3vw, 2.75rem); letter-spacing: -0.04em; }
+    h2 { font-size: 1.1rem; }
+    .course { margin-bottom: 5px; color: var(--teal); font-size: .86rem; font-weight: 700; }
+    header p:last-child, .hint { color: var(--muted); }
+    .panel { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: clamp(14px, 2.6vw, 22px); }
+    .toolbar, .range-title, .readout-title {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
+    }
+    .toolbar { margin: 12px 0 15px; }
+    .range-title, .readout-title { justify-content: space-between; }
+    button, select { font: inherit; min-height: 40px; }
+    button, select {
+      color: var(--ink); border: 1px solid var(--line); border-radius: 8px;
+      background: #fff; padding: 6px 12px;
+    }
+    button { cursor: pointer; }
+    button:hover { background: #eff4f7; }
+    button.primary { background: var(--teal); color: #fff; border-color: var(--teal); min-width: 6em; }
+    button.primary:hover { background: #115e59; }
+    button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
+    input[type="range"] { width: 100%; margin: 7px 0 3px; min-height: 28px; accent-color: var(--teal); }
+    output, .value { font-weight: 700; font-variant-numeric: tabular-nums; }
+    .jump { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .jump button { font-size: .87rem; }
+    .settings { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 12px; }
+    .settings input { max-width: 440px; }
+    .hint { font-size: .87rem; }
+    .grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 14px; margin: 14px 0; }
+    .badge {
+      padding: 3px 9px; background: #edf2f6; border-radius: 999px;
+      font-size: .87rem; font-weight: 700;
+    }
+    .badge[data-state="watching"] { background: #fff4ce; color: #704d00; }
+    .badge[data-state="alert"] { background: var(--alert-bg); color: var(--alert); }
+    .badge[data-state="balanced"] { background: var(--soft); color: var(--teal); }
+    .map { display: block; width: min(100%, 280px); margin: 10px auto; }
+    .map text { fill: var(--muted); font-size: 10px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 6px 15px; font-size: .86rem; color: var(--muted); }
+    .legend span::before {
+      content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 5px;
+      vertical-align: .05em; border-radius: 50%; background: var(--teal);
+    }
+    .legend .area::before { background: var(--soft); border: 1px dashed var(--teal); }
+    .legend .base::before { background: #415a76; }
+    dl { display: grid; grid-template-columns: 1fr auto; gap: 9px 12px; margin: 12px 0 0; }
+    dd { margin: 0; text-align: right; }
+    .loads { margin-top: 15px; padding-top: 14px; border-top: 1px solid var(--line); }
+    .loads dl { grid-template-columns: 1fr auto 1fr auto; }
+    .loads dt { white-space: nowrap; }
+    .plot-wrap { margin: 14px 0 8px; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: stretch; gap: 0 7px; }
+    .y-labels { display: flex; flex-direction: column; justify-content: space-between; text-align: right; padding: 1px 0; }
+    .axis { color: var(--muted); font-size: .75rem; font-variant-numeric: tabular-nums; }
+    .timeline { display: block; width: 100%; height: 108px; }
+    .x-labels { grid-column: 2; display: flex; justify-content: space-between; }
+    .timeline line, .timeline path { vector-effect: non-scaling-stroke; }
+    .track-info { margin-top: 4px; font-size: .89rem; color: var(--muted); }
+    footer { margin-top: 14px; }
+    @media (max-width: 670px) { .grid { grid-template-columns: 1fr; } }
+    @media (max-width: 380px) { .loads dl { gap: 6px; font-size: .92rem; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="course">물리학과 AI 코딩 과제 07</p>
+      <h1>스마트 방석 시뮬레이터</h1>
+      <p>네 모서리의 하중으로 압력 중심을 계산하고, 쏠림이 지속될 때 가상 진동을 켭니다.</p>
+    </header>
+
+    <section class="panel" aria-labelledby="scenario-title">
+      <h2 id="scenario-title">착석 시나리오</h2>
+      <p class="hint">64초 동안 빈 의자, 짧은 움직임, 지속 쏠림, 복귀와 재착석을 차례로 재현합니다.</p>
+      <div class="toolbar">
+        <button class="primary" id="play" type="button">재생</button>
+        <label for="speed">재생 속도</label>
+        <select id="speed">
+          <option value="1">1배</option>
+          <option value="2" selected>2배</option>
+          <option value="4">4배</option>
+        </select>
+        <button id="reset" type="button">초기화</button>
+      </div>
+      <div class="range-title"><label for="time">시나리오 시간</label><output id="clock" for="time" aria-live="off">0.00초</output></div>
+      <input id="time" type="range" min="0" max="63.95" step="0.05" value="0">
+      <div class="jump" role="group" aria-label="관찰할 구간으로 이동">
+        <button type="button" data-time="13.5">짧은 움직임</button>
+        <button type="button" data-time="37.8">지속 쏠림</button>
+        <button type="button" data-time="60">재착석</button>
+      </div>
+      <div class="settings">
+        <div class="range-title"><label for="hold">알림까지 연속으로 쏠려야 하는 시간</label><output id="hold-value" for="hold">15초</output></div>
+        <input id="hold" type="range" min="5" max="25" step="1" value="15" aria-describedby="hold-help">
+        <p class="hint" id="hold-help">기준점에서 거리 0.30을 넘고 중심 이동 속도가 0.10/s 이하일 때 시간을 잽니다. 25초로 높이면 기본 시나리오에서 알림이 켜지지 않습니다.</p>
+      </div>
+    </section>
+
+    <div class="grid">
+      <section class="panel" aria-labelledby="map-title">
+        <h2 id="map-title">방석 위 압력 중심</h2>
+        <svg class="map" viewBox="0 0 240 240" role="img" aria-label="방석을 위에서 본 네 모서리 센서와 압력 중심 지도">
+          <text x="120" y="13" text-anchor="middle">앞</text>
+          <text x="120" y="235" text-anchor="middle">뒤</text>
+          <rect x="28" y="28" width="184" height="184" rx="18" fill="#f6f9fb" stroke="#bdcad7"/>
+          <path d="M28 120h184 M120 28v184" stroke="#d6e1e8" stroke-dasharray="4 4"/>
+          <circle id="zone" r="24.6" fill="#e1f3ef" stroke="#0f766e" stroke-dasharray="4 3" visibility="hidden"/>
+          <circle id="baseline" r="4" fill="#415a76" visibility="hidden"/>
+          <circle id="center" r="6" fill="#0f766e" stroke="#fff" stroke-width="1.5" visibility="hidden"/>
+          <g fill="#0f766e" stroke="#0f766e">
+            <circle id="sensor0" cx="38" cy="202" r="5"/>
+            <circle id="sensor1" cx="202" cy="202" r="5"/>
+            <circle id="sensor2" cx="38" cy="38" r="5"/>
+            <circle id="sensor3" cx="202" cy="38" r="5"/>
+          </g>
+          <text x="48" y="40">좌전</text><text x="192" y="40" text-anchor="end">우전</text>
+          <text x="48" y="205">좌후</text><text x="192" y="205" text-anchor="end">우후</text>
+        </svg>
+        <div class="legend"><span>현재 중심</span><span class="base">착석 기준점</span><span class="area">허용 범위</span></div>
+      </section>
+      <section class="panel" aria-labelledby="readout-heading">
+        <div class="readout-title">
+          <h2 id="readout-heading">현재 판정</h2>
+          <span class="badge" id="state" data-state="vacant">미착석</span>
+        </div>
+        <p class="hint" id="phase">빈 의자</p>
+        <dl class="value">
+          <dt>가상 진동 PWM</dt><dd id="pwm">0 / 255</dd>
+          <dt>연속 쏠림 시간</dt><dd id="elapsed">0.00초</dd>
+          <dt>기준점과의 거리</dt><dd id="distance">—</dd>
+          <dt>중심 이동 속도</dt><dd id="velocity">—</dd>
+          <dt>압력 중심 (x, y)</dt><dd id="center-xy">—</dd>
+          <dt>착석 기준점 (x, y)</dt><dd id="baseline-xy">—</dd>
+        </dl>
+        <div class="loads">
+          <h2>모서리 센서 하중</h2>
+          <dl class="value">
+            <dt>왼쪽 앞</dt><dd id="load2">0.0 N</dd>
+            <dt>오른쪽 앞</dt><dd id="load3">0.0 N</dd>
+            <dt>왼쪽 뒤</dt><dd id="load0">0.0 N</dd>
+            <dt>오른쪽 뒤</dt><dd id="load1">0.0 N</dd>
+          </dl>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel" aria-labelledby="timeline-title">
+      <h2 id="timeline-title">시간에 따른 가상 진동 출력</h2>
+      <p class="track-info" id="alert-summary"></p>
+      <div class="plot-wrap">
+        <div class="axis y-labels" aria-hidden="true"><span>200</span><span>100</span><span>0</span></div>
+        <svg class="timeline" viewBox="0 0 640 108" preserveAspectRatio="none" role="img" aria-label="시간에 따른 PWM 그래프와 현재 위치">
+          <path d="M0 6H640 M0 54H640 M0 102H640" fill="none" stroke="#d6e1e8"/>
+          <path id="pwm-path" fill="none" stroke="#0f766e" stroke-width="2.5" stroke-linejoin="round"/>
+          <line id="cursor" x1="0" x2="0" y1="0" y2="108" stroke="#a53e29" stroke-width="2" stroke-dasharray="4 3"/>
+        </svg>
+        <div class="axis x-labels" aria-hidden="true"><span>0초</span><span>16초</span><span>32초</span><span>48초</span><span>64초</span></div>
+      </div>
+      <p class="hint">청록색은 0–255 범위에서 계산한 PWM 명령이고, 점선은 선택한 시각입니다. 시뮬레이션에서는 최대 200을 사용합니다.</p>
+    </section>
+
+    <footer class="hint">거리와 좌표는 방석 반폭과 반길이 기준의 정규화 값입니다. 20 Hz 가상 센서의 난수열은 Python과 달라 계산값에 작은 차이가 생길 수 있습니다.</footer>
+    <noscript><p>시뮬레이터를 실행하려면 브라우저에서 JavaScript를 켜 주세요.</p></noscript>
+  </main>
+  <script>
+    "use strict";
+
+    const SAMPLE_RATE = 20;
+    const SEATED_LOAD = 50;
+    const TARE_FRAMES = 5 * SAMPLE_RATE;
+    const EMA_ALPHA = 0.2;
+    const DISTANCE_LIMIT = 0.30;
+    const SPEED_LIMIT = 0.10;
+    const RAMP_FRAMES = 3 * SAMPLE_RATE;
+    const PWM_MIN = 50;
+    const PWM_MAX = 200;
+    const SENSORS = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
+
+    function seededGaussian(seed) {
+      let state = seed;
+      function uniform() {
+        state ^= state << 13;
+        state ^= state >>> 17;
+        state ^= state << 5;
+        return ((state >>> 0) + 0.5) / 4294967296;
+      }
+      return () => Math.sqrt(-2 * Math.log(uniform())) * Math.cos(2 * Math.PI * uniform());
+    }
+
+    function makeScenario() {
+      const neutral = [0.08, -0.06];
+      const brief = [0.57, -0.03];
+      const lean = [0.54, 0.02];
+      const secondNeutral = [-0.18, 0.12];
+      const segments = [
+        [3, "빈 의자", 0, neutral, neutral],
+        [5, "첫 착석과 기준점 보정", 650, neutral, neutral],
+        [4, "균형 잡힌 착석", 650, neutral, neutral],
+        [1, "짧은 움직임", 650, neutral, brief],
+        [1, "일시적 쏠림", 650, brief, brief],
+        [1, "짧은 움직임에서 복귀", 650, brief, neutral],
+        [5, "균형 잡힌 착석", 650, neutral, neutral],
+        [2, "지속 쏠림으로 이동", 650, neutral, lean],
+        [22, "지속 쏠림", 650, lean, lean],
+        [2, "지속 쏠림에서 복귀", 650, lean, neutral],
+        [4, "복귀 후 착석", 650, neutral, neutral],
+        [4, "자리에서 일어남", 0, neutral, neutral],
+        [5, "재착석과 기준점 보정", 520, secondNeutral, secondNeutral],
+        [5, "새 기준점에서 착석", 520, secondNeutral, secondNeutral]
+      ];
+      const noise = seededGaussian(42);
+      const samples = [];
+      for (const [duration, phase, weight, start, end] of segments) {
+        const count = duration * SAMPLE_RATE;
+        for (let i = 0; i < count; i++) {
+          const x = start[0] + (end[0] - start[0]) * i / count;
+          const y = start[1] + (end[1] - start[1]) * i / count;
+          const loads = SENSORS.map(([sx, sy]) =>
+            Math.max(0, weight * (1 + sx * x) * (1 + sy * y) / 4 + 0.5 * noise()));
+          samples.push({phase, loads});
+        }
+      }
+      return samples;
+    }
+
+    function analyze(samples, holdSeconds) {
+      const holdFrames = holdSeconds * SAMPLE_RATE;
+      let tareSamples = [];
+      let baseline = null;
+      let filtered = null;
+      let steadyStart = null;
+      return samples.map(({phase, loads}, index) => {
+        const result = {
+          phase, loads, state: "vacant", center: null, baseline: null,
+          distance: null, speed: null, elapsed: 0, pwm: 0
+        };
+        const weight = loads.reduce((sum, load) => sum + load, 0);
+        if (weight < SEATED_LOAD) {
+          tareSamples = [];
+          baseline = filtered = steadyStart = null;
+          return result;
+        }
+        const center = [0, 1].map(axis =>
+          loads.reduce((sum, load, i) => sum + load * SENSORS[i][axis], 0) / weight);
+        if (tareSamples.length < TARE_FRAMES) {
+          tareSamples.push(center);
+          result.state = "calibrating";
+          result.center = center;
+          return result;
+        }
+        if (!baseline) {
+          baseline = [0, 1].map(axis =>
+            tareSamples.reduce((sum, sample) => sum + sample[axis], 0) / TARE_FRAMES);
+          filtered = baseline;
+        }
+        const change = center.map((position, axis) => EMA_ALPHA * (position - filtered[axis]));
+        filtered = filtered.map((position, axis) => position + change[axis]);
+        result.center = filtered;
+        result.baseline = baseline;
+        result.distance = Math.hypot(filtered[0] - baseline[0], filtered[1] - baseline[1]);
+        result.speed = Math.hypot(...change) * SAMPLE_RATE;
+        if (result.distance <= DISTANCE_LIMIT || result.speed > SPEED_LIMIT) {
+          result.state = result.distance <= DISTANCE_LIMIT ? "balanced" : "moving";
+          steadyStart = null;
+          return result;
+        }
+        if (steadyStart === null) steadyStart = index;
+        const elapsedFrames = index - steadyStart;
+        result.elapsed = elapsedFrames / SAMPLE_RATE;
+        result.state = elapsedFrames < holdFrames ? "watching" : "alert";
+        if (result.state === "alert") {
+          const ramp = Math.min(1, (elapsedFrames - holdFrames) / RAMP_FRAMES);
+          result.pwm = Math.round(PWM_MIN + (PWM_MAX - PWM_MIN) * ramp);
+        }
+        return result;
+      });
+    }
+
+    const STATE_LABELS = {
+      vacant: "미착석", calibrating: "기준점 보정 중", balanced: "허용 범위",
+      moving: "이동 중", watching: "쏠림 지속 확인 중", alert: "가상 진동 중"
+    };
+    const byId = id => document.getElementById(id);
+    const coordinates = xy => xy ? "(" + xy.map(value => value.toFixed(3)).join(", ") + ")" : "—";
+    const samples = makeScenario();
+    const timeSlider = byId("time");
+    const holdSlider = byId("hold");
+    const speedSelect = byId("speed");
+    const playButton = byId("play");
+    const fields = Object.fromEntries(
+      ["clock", "state", "phase", "pwm", "elapsed", "distance", "velocity", "center-xy", "baseline-xy",
+        "zone", "baseline", "center", "cursor", "pwm-path", "hold-value", "alert-summary"]
+        .map(id => [id, byId(id)])
+    );
+    const loadFields = SENSORS.map((_, i) => byId("load" + i));
+    const sensorDots = SENSORS.map((_, i) => byId("sensor" + i));
+    const lastSample = samples.length - 1;
+    const xOnTimeline = index => 640 * index / samples.length;
+    let results;
+    let currentIndex = 0;
+    let animation = null;
+    let previousTime = null;
+    let playbackFrame = 0;
+
+    function showPoint(element, xy) {
+      element.setAttribute("visibility", xy ? "visible" : "hidden");
+      if (!xy) return;
+      element.setAttribute("cx", 120 + 82 * xy[0]);
+      element.setAttribute("cy", 120 - 82 * xy[1]);
+    }
+
+    function showFrame(index) {
+      currentIndex = index;
+      const frame = results[index];
+      const seconds = index / SAMPLE_RATE;
+      timeSlider.value = seconds;
+      timeSlider.setAttribute("aria-valuetext", seconds.toFixed(2) + "초");
+      fields.clock.textContent = seconds.toFixed(2) + "초";
+      fields.state.textContent = STATE_LABELS[frame.state];
+      fields.state.dataset.state = frame.state;
+      fields.phase.textContent = frame.phase;
+      fields.pwm.textContent = frame.pwm + " / 255";
+      fields.elapsed.textContent = frame.elapsed.toFixed(2) + "초";
+      fields.distance.textContent = frame.distance === null ? "—" : frame.distance.toFixed(3);
+      fields.velocity.textContent = frame.speed === null ? "—" : frame.speed.toFixed(3) + " /s";
+      fields["center-xy"].textContent = coordinates(frame.center);
+      fields["baseline-xy"].textContent = coordinates(frame.baseline);
+      showPoint(fields.zone, frame.baseline);
+      showPoint(fields.baseline, frame.baseline);
+      showPoint(fields.center, frame.center);
+      frame.loads.forEach((load, i) => {
+        loadFields[i].textContent = load.toFixed(1) + " N";
+        sensorDots[i].setAttribute("fill-opacity", 0.12 + 0.88 * Math.min(1, load / 250));
+      });
+      fields.cursor.setAttribute("x1", xOnTimeline(index));
+      fields.cursor.setAttribute("x2", xOnTimeline(index));
+    }
+
+    function recompute() {
+      const holdSeconds = Number(holdSlider.value);
+      results = analyze(samples, holdSeconds);
+      fields["hold-value"].textContent = holdSeconds + "초";
+      holdSlider.setAttribute("aria-valuetext", holdSeconds + "초");
+      const pwmY = pwm => 102 - 96 * pwm / PWM_MAX;
+      let path = "M0 " + pwmY(results[0].pwm);
+      results.forEach(({pwm}, index) => {
+        if (index && pwm !== results[index - 1].pwm) {
+          path += " H" + xOnTimeline(index) + " V" + pwmY(pwm);
+        }
+      });
+      fields["pwm-path"].setAttribute("d", path + " H640");
+      const alertIndex = results.findIndex(frame => frame.state === "alert");
+      fields["alert-summary"].textContent = alertIndex === -1 ?
+        "이 조건에서는 알림이 켜지지 않습니다." :
+        (alertIndex / SAMPLE_RATE).toFixed(2) + "초에 첫 알림이 켜집니다.";
+      showFrame(currentIndex);
+    }
+
+    function pause() {
+      if (animation !== null) cancelAnimationFrame(animation);
+      animation = null;
+      previousTime = null;
+      playButton.textContent = "재생";
+    }
+
+    function tick(timestamp) {
+      if (previousTime !== null) {
+        playbackFrame += (timestamp - previousTime) / 1000 * Number(speedSelect.value) * SAMPLE_RATE;
+      }
+      previousTime = timestamp;
+      const next = Math.min(lastSample, Math.floor(playbackFrame));
+      if (next !== currentIndex) showFrame(next);
+      if (next === lastSample) {
+        pause();
+        return;
+      }
+      animation = requestAnimationFrame(tick);
+    }
+
+    function seek(seconds) {
+      pause();
+      showFrame(Math.min(lastSample, Math.round(seconds * SAMPLE_RATE)));
+    }
+
+    playButton.addEventListener("click", () => {
+      if (animation !== null) {
+        pause();
+        return;
+      }
+      if (currentIndex === lastSample) showFrame(0);
+      playbackFrame = currentIndex;
+      playButton.textContent = "일시정지";
+      animation = requestAnimationFrame(tick);
+    });
+    byId("reset").addEventListener("click", () => {
+      seek(0);
+      speedSelect.value = "2";
+      holdSlider.value = "15";
+      recompute();
+    });
+    timeSlider.addEventListener("input", () => seek(Number(timeSlider.value)));
+    holdSlider.addEventListener("input", recompute);
+    document.querySelectorAll("[data-time]").forEach(button => {
+      button.addEventListener("click", () => seek(Number(button.dataset.time)));
+    });
+    timeSlider.max = lastSample / SAMPLE_RATE;
+    recompute();
+  </script>
+</body>
+</html>
