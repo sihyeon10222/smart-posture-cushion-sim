@@ -154,6 +154,15 @@
       .views button[data-view="top"], .views button[data-view="back"] { display: none; }
     }
     @media (prefers-reduced-motion: reduce) { .chip.live::before { animation: none; } }
+    .demo-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 12px; }
+    .demo-bar .demo-play { background: linear-gradient(180deg, #5b8cff, #3a63d6); border-color: #86a8ff; color: #fff; font-weight: 750; }
+    .demo-bar .demo-play:hover { background: linear-gradient(180deg, #6d99ff, #4570e0); }
+    .demo-bar .demo-record { border-color: #ff7a6b; color: #ffd2cc; font-weight: 650; }
+    .demo-bar button:disabled { opacity: .45; cursor: not-allowed; }
+    .demo-status { color: #cfe0f0; font-variant-numeric: tabular-nums; font-size: .84rem; }
+    .demo-note { color: var(--muted); font-size: .78rem; flex-basis: 100%; }
+    body.demo-running .hud-bottom .hint { visibility: hidden; }
+    body.demo-running .stage .pwm-badge { display: none; }
   </style>
 </head>
 <body data-mode="replay">
@@ -168,6 +177,13 @@
         <span>FSR 4개 · 20 Hz</span><span>착석 50 N 이상</span><span>기준점 5초</span><span>거리 &gt; 0.30</span><span>속도 ≤ 0.10/s</span>
       </div>
     </header>
+
+    <div class="demo-bar" role="group" aria-label="자동 데모">
+      <button type="button" class="demo-play" id="demo-play">▶ 자동 데모 20초</button>
+      <button type="button" class="demo-record" id="demo-record">● 데모 녹화 (영상 저장)</button>
+      <span class="demo-status" id="demo-status" aria-live="polite"></span>
+      <span class="demo-note">자동 데모는 시점 이동, 조작, 자막을 20초 동안 스스로 보여 줍니다. 녹화 버튼은 3D 장면과 자막을 영상 파일로 저장하고, 페이지 전체를 찍으려면 화면 녹화(Mac ⌘⇧5, Windows Win+Alt+R)를 쓰면 됩니다. 주소 끝에 ?demo를 붙이면 열자마자 데모가 시작됩니다.</span>
+    </div>
 
     <section class="stage" id="seat-stage" data-alert="false" aria-labelledby="stage-title">
       <h2 id="stage-title" hidden>3D 착석 장면</h2>
@@ -564,8 +580,8 @@
         const height = canvas.clientHeight;
         if (!width || !height || !this.ctx) return false;
         const density = Math.min(window.devicePixelRatio || 1, 2);
-        const pixelWidth = Math.round(width * density);
-        const pixelHeight = Math.round(height * density);
+        const pixelWidth = Math.round(width * density / 2) * 2;
+        const pixelHeight = Math.round(height * density / 2) * 2;
         if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
           canvas.width = pixelWidth;
           canvas.height = pixelHeight;
@@ -998,6 +1014,171 @@
       }
     }
 
+
+    /* ───────── 20초 자동 데모와 영상 녹화 ───────── */
+    let demo = null;
+
+    class DemoRunner {
+      constructor({ scene, steps, title, fileName, duration = 20, onStart, onEnd }) {
+        Object.assign(this, { scene, steps, title, fileName, duration, onStart, onEnd });
+        this.active = false;
+        this.caption = "";
+        this.captionAt = 0;
+        this.recorder = null;
+        this.playButton = document.getElementById("demo-play");
+        this.recordButton = document.getElementById("demo-record");
+        this.status = document.getElementById("demo-status");
+        this.playButton?.addEventListener("click", () => (this.active ? this.stop() : this.start(false)));
+        this.recordButton?.addEventListener("click", () => (this.active ? this.stop() : this.start(true)));
+        scene.canvas.addEventListener("pointerdown", () => { if (this.active && !this.recorder) this.stop(); });
+        this.updateButtons();
+      }
+
+      start(record) {
+        this.stop();
+        this.scene.canvas.closest("section")?.scrollIntoView({ behavior: "smooth", block: "center" });
+        this.onStart?.();
+        this.active = true;
+        this.t0 = performance.now();
+        this.t = 0;
+        this.fired = new Set();
+        this.finished = new Set();
+        this.caption = "";
+        if (record) this.startRecording();
+        this.updateButtons();
+      }
+
+      stop() {
+        if (!this.active) return;
+        this.active = false;
+        this.caption = "";
+        if (this.recorder && this.recorder.state !== "inactive") this.recorder.stop();
+        this.onEnd?.();
+        this.scene.dirty = true;
+        this.updateButtons();
+      }
+
+      say(text) {
+        this.caption = typeof text === "function" ? text() : text;
+        this.captionAt = this.t;
+      }
+
+      tick(now) {
+        if (!this.active) return false;
+        this.t = (now - this.t0) / 1000;
+        this.steps.forEach((step, i) => {
+          if (this.t >= step.at && !this.fired.has(i)) {
+            this.fired.add(i);
+            if (step.caption) this.say(step.caption);
+            step.run?.();
+          }
+          if (step.update && this.t >= step.at && !this.finished.has(i)) {
+            const progress = clamp((this.t - step.at) / (step.until - step.at), 0, 1);
+            step.update(progress);
+            if (progress >= 1) this.finished.add(i);
+          }
+        });
+        if (this.t >= this.duration) this.stop();
+        if (this.status) this.status.textContent = this.active ? `${Math.min(this.t, this.duration).toFixed(1)} / ${this.duration}초` : "";
+        return true;
+      }
+
+      drawOverlay() {
+        if (!this.active) return;
+        const { ctx, w, h } = this.scene;
+        const size = clamp(w * 0.021, 14, 23);
+        ctx.save();
+        // 제목
+        ctx.font = `700 ${Math.round(size * 0.68)}px system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        const titleWidth = ctx.measureText(this.title).width + 26;
+        ctx.fillStyle = "rgba(5,12,22,.72)";
+        ctx.beginPath();
+        ctx.roundRect ? ctx.roundRect(w / 2 - titleWidth / 2, 14, titleWidth, size * 1.35, 999) : ctx.rect(w / 2 - titleWidth / 2, 14, titleWidth, size * 1.35);
+        ctx.fill();
+        ctx.fillStyle = "#cfe9ff";
+        ctx.fillText(this.title, w / 2, 14 + size * 0.68);
+        // 자막
+        if (this.caption) {
+          const alpha = clamp((this.t - this.captionAt) / 0.35, 0, 1);
+          ctx.font = `650 ${Math.round(size)}px system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif`;
+          const maxWidth = w * 0.84;
+          const lines = [];
+          let line = "";
+          for (const word of this.caption.split(" ")) {
+            const next = line ? `${line} ${word}` : word;
+            if (ctx.measureText(next).width > maxWidth && line) {
+              lines.push(line);
+              line = word;
+            } else line = next;
+          }
+          if (line) lines.push(line);
+          const lineHeight = size * 1.4;
+          const boxWidth = Math.min(maxWidth, Math.max(...lines.map(l => ctx.measureText(l).width))) + size * 1.6;
+          const boxHeight = lines.length * lineHeight + size * 0.9;
+          const top = h - boxHeight - 26 + (1 - alpha) * 10;
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = "rgba(5,12,22,.84)";
+          ctx.strokeStyle = "rgba(120,190,230,.35)";
+          ctx.beginPath();
+          ctx.roundRect ? ctx.roundRect(w / 2 - boxWidth / 2, top, boxWidth, boxHeight, 14) : ctx.rect(w / 2 - boxWidth / 2, top, boxWidth, boxHeight);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = "#f2f8ff";
+          lines.forEach((text, i) => ctx.fillText(text, w / 2, top + size * 0.45 + lineHeight * (i + 0.5)));
+          ctx.globalAlpha = 1;
+        }
+        // 진행 막대
+        ctx.fillStyle = "rgba(255,255,255,.12)";
+        ctx.fillRect(0, h - 4, w, 4);
+        ctx.fillStyle = "#5fe3d0";
+        ctx.fillRect(0, h - 4, w * clamp(this.t / this.duration, 0, 1), 4);
+        ctx.restore();
+      }
+
+      startRecording() {
+        const canvas = this.scene.canvas;
+        if (!canvas.captureStream || !window.MediaRecorder) {
+          if (this.status) this.status.textContent = "이 브라우저는 영상 저장을 지원하지 않습니다. 화면 녹화를 이용하세요.";
+          return;
+        }
+        const types = ["video/mp4;codecs=avc1.640028", "video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
+        const type = types.find(candidate => MediaRecorder.isTypeSupported(candidate)) ?? "";
+        const chunks = [];
+        const recorder = new MediaRecorder(canvas.captureStream(60), { ...(type ? { mimeType: type } : {}), videoBitsPerSecond: 12_000_000 });
+        recorder.ondataavailable = event => { if (event.data.size) chunks.push(event.data); };
+        recorder.onstop = () => {
+          const blobType = recorder.mimeType || type || "video/webm";
+          const blob = new Blob(chunks, { type: blobType });
+          const link = document.createElement("a");
+          link.href = URL.createObjectURL(blob);
+          link.download = `${this.fileName}.${blobType.includes("mp4") ? "mp4" : "webm"}`;
+          document.body.append(link);
+          link.click();
+          link.remove();
+          setTimeout(() => URL.revokeObjectURL(link.href), 60000);
+          this.recorder = null;
+          if (this.status) this.status.textContent = `영상 저장: ${link.download}`;
+          this.updateButtons();
+        };
+        recorder.start(250);
+        this.recorder = recorder;
+      }
+
+      updateButtons() {
+        if (this.playButton) {
+          this.playButton.textContent = this.active && !this.recorder ? "■ 데모 멈추기" : "▶ 자동 데모 20초";
+          this.playButton.disabled = Boolean(this.active && this.recorder);
+        }
+        if (this.recordButton) {
+          this.recordButton.textContent = this.active && this.recorder ? "■ 녹화 멈추기" : "● 데모 녹화 (영상 저장)";
+          this.recordButton.disabled = Boolean(this.active && !this.recorder);
+        }
+        document.body.classList.toggle("demo-running", this.active);
+      }
+    }
+
     /* ───────── 센서 모델과 판정 로직 (Python simulate.py와 같은 규칙) ───────── */
     const SAMPLE_RATE = 20;
     const SEATED_LOAD = 50;
@@ -1384,6 +1565,7 @@
         scene.line(ring, "rgba(255,159,74,.9)", 1.6, { dash: [3, 3], glow: true });
       }
       scene.flush();
+      demo?.drawOverlay();
     }
 
     /* ───────── 화면 갱신 ───────── */
@@ -1563,9 +1745,10 @@
     let previous = performance.now();
     let readoutTick = 0;
     function loop(now) {
-      const dt = Math.min(0.1, (now - previous) / 1000);
+      const dt = Math.min(demo?.active ? 0.5 : 0.1, (now - previous) / 1000);
       previous = now;
       let changed = scene.update(dt);
+      if (demo?.tick(now)) changed = true;
       let dataChanged = false;
       if (playing) {
         const speed = Number(speedSelect.value);
@@ -1669,6 +1852,39 @@
       if (event.matches && mode === "replay") setPlaying(false);
     });
     window.addEventListener("resize", () => { scene.dirty = true; });
+
+    /* ───────── 20초 자동 데모 시나리오 ───────── */
+    demo = new DemoRunner({
+      scene, title: "자세 교정 스마트 방석 · 자동 데모", fileName: "스마트방석-데모",
+      onStart: () => {
+        holdSlider.value = "15";
+        speedSelect.value = "2";
+        setMode("replay");
+        recompute();
+        seek(9);
+        setPlaying(true);
+        scene.setView(scene.home, 800);
+      },
+      onEnd: () => { speedSelect.value = "2"; },
+      steps: [
+        { at: 0, caption: "방석 네 모서리 FSR 하중으로 압력 중심을 계산합니다 · 착석 후 5초 동안 기준점을 잡습니다" },
+        {
+          at: 3.0, caption: "오른쪽으로 쏠린 채 가만히 있으면 ‘연속 쏠림 시간’이 쌓입니다 (2배속)",
+          run: () => { seek(33.5); setPlaying(true); scene.setView({ yaw: 0.95, pitch: 0.78, dist: 6.4, target: [0, 1.2, 0] }, 1200); },
+        },
+        { at: 4.9, caption: "15초를 넘기면 가상 진동 시작 · PWM이 50에서 3초 동안 200까지 올라갑니다" },
+        { at: 8.0, caption: "바른 자세로 돌아오면 진동이 꺼집니다" },
+        {
+          at: 10.0, caption: "직접 앉아보기 · 같은 판정 로직을 실시간으로 실행합니다 (4배속)",
+          run: () => { speedSelect.value = "4"; setMode("live"); scene.setView({ yaw: -0.5, pitch: 0.42, dist: 7.2, target: [0, 1.25, 0.1] }, 1200); },
+        },
+        { at: 11.6, run: () => setTarget(-0.55, 0.05), caption: "방석을 끌어 왼쪽으로 기울이면 압력 중심이 따라 움직입니다" },
+        { at: 13.4, caption: "거리 0.30을 넘긴 채 가만히 있으면 쏠림 시간이 쌓이고…", until: 17.8, update: t => { scene.cam.yaw = -0.5 + 0.8 * t; scene.dirty = true; } },
+        { at: 15.9, caption: "15초(시뮬레이션 시간)가 지나면 진동 알림이 울립니다" },
+        { at: 18.0, run: () => setTarget(0.08, -0.06), caption: "기준 자세로 돌아오면 꺼집니다 · 방석을 직접 끌어 보세요" },
+      ],
+    });
+    if (new URLSearchParams(location.search).has("demo")) setTimeout(() => demo.start(false), 400);
 
     timeSlider.max = lastSample / SAMPLE_RATE;
     recompute();
