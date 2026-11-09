@@ -6,118 +6,203 @@
   <title>자세 교정 스마트 방석 시뮬레이터</title>
   <style>
     :root {
-      color-scheme: light;
-      --bg: #f4f7fa;
-      --ink: #172b45;
-      --muted: #4b5f72;
-      --line: #d6e1e8;
-      --teal: #0f766e;
-      --soft: #e1f3ef;
-      --alert: #a53e29;
-      --alert-bg: #fcebe4;
-      font-family: system-ui, -apple-system, "Malgun Gothic", sans-serif;
-      line-height: 1.5;
+      color-scheme: dark;
+      --bg: #08111e;
+      --panel: #0d1a2b;
+      --panel-2: #112238;
+      --line: #213750;
+      --line-2: #2c4864;
+      --ink: #eaf2fb;
+      --muted: #9ab0c6;
+      --accent: #4fd1bf;
+      --alert: #ff9f4a;
+      --watch: #f5d061;
+      --move: #7fb2ff;
+      font-family: system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      font-synthesis: none;
     }
-    * { box-sizing: border-box; }
-    body { margin: 0; background: var(--bg); color: var(--ink); }
-    main { max-width: 1060px; margin: auto; padding: clamp(16px, 4vw, 42px); }
-    header { margin-bottom: 22px; }
-    h1, h2, p { margin: 0; }
-    h1 { font-size: clamp(1.75rem, 4.3vw, 2.75rem); letter-spacing: -0.04em; }
-    h2 { font-size: 1.1rem; }
-    .course { margin-bottom: 5px; color: var(--teal); font-size: .86rem; font-weight: 700; }
-    header p:last-child, .hint { color: var(--muted); }
-    .panel { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: clamp(14px, 2.6vw, 22px); }
-    .toolbar, .range-title, .readout-title {
-      display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(900px 520px at 88% -8%, rgba(255, 159, 74, .11), transparent 70%),
+        radial-gradient(800px 480px at 0% 8%, rgba(79, 209, 191, .1), transparent 70%),
+        var(--bg);
     }
-    .toolbar { margin: 12px 0 15px; }
-    .stage {
-      position: relative; isolation: isolate; margin: 14px 0 0; overflow: hidden;
-      color: #eef6fb; border-radius: 13px; background: radial-gradient(ellipse at 50% 60%, #253f56, #14253a 72%);
-    }
-    .stage-heading { position: absolute; inset: 13px 13px auto; display: flex; justify-content: space-between; gap: 10px; align-items: start; }
-    .stage-label { color: #a7ccc9; font-size: .71rem; letter-spacing: .12em; font-weight: 750; }
-    .stage-state { color: #eef6fb; font-size: .89rem; font-weight: 750; }
-    .stage[data-alert="true"] .stage-state { color: #ffd7a3; }
-    .stage button { color: #eef6fb; border-color: #527084; background: #203850; font-size: .79rem; min-height: 32px; padding: 3px 9px; }
-    .stage button:hover { background: #324e66; }
-    .stage button:focus-visible { outline-color: #6ee7cf; }
-    .stage canvas { display: block; width: 100%; height: clamp(290px, 45vw, 400px); }
-    .stage-loads { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: #3e566c; border-top: 1px solid #3e566c; }
-    .stage-load { min-width: 0; padding: 9px 12px 12px; background: #1c3046; }
-    .stage-load p { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 8px; color: #d7e7ef; font-size: .76rem; }
-    .stage-load strong { color: #e5fffa; font-variant-numeric: tabular-nums; }
-    .load-bar { display: block; height: 3px; border-radius: 99px; margin-top: 6px; background: #435b6f; overflow: hidden; }
-    .load-bar i { display: block; height: 100%; width: 0%; background: #69e2ce; }
-    .stage-note { margin-top: 6px; }
-    .range-title, .readout-title { justify-content: space-between; }
-    button, select { font: inherit; min-height: 40px; }
+    main { max-width: 1240px; margin: auto; padding: 32px 22px 56px; }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: clamp(1.7rem, 4.2vw, 2.7rem); letter-spacing: -.045em; line-height: 1.15; }
+    h2 { font-size: 1.05rem; letter-spacing: -.02em; }
+    p { line-height: 1.55; }
+    .hero { display: flex; justify-content: space-between; align-items: end; gap: 18px; flex-wrap: wrap; margin-bottom: 20px; }
+    .hero > div { max-width: 760px; }
+    .eyebrow { color: var(--accent); font-size: .8rem; font-weight: 750; letter-spacing: .04em; margin-bottom: 8px; }
+    .intro { margin-top: 10px; color: var(--muted); }
+    .spec { display: flex; gap: 8px; flex-wrap: wrap; }
+    .spec span { border: 1px solid var(--line-2); border-radius: 999px; padding: 4px 11px; color: #cfe0f0; font-size: .8rem; background: rgba(13, 26, 43, .7); }
     button, select {
-      color: var(--ink); border: 1px solid var(--line); border-radius: 8px;
-      background: #fff; padding: 6px 12px;
+      font: inherit; font-size: .85rem; color: var(--ink); background: var(--panel-2);
+      border: 1px solid var(--line-2); border-radius: 9px; min-height: 36px; padding: 5px 12px; cursor: pointer;
     }
-    button { cursor: pointer; }
-    button:hover { background: #eff4f7; }
-    button.primary { background: var(--teal); color: #fff; border-color: var(--teal); min-width: 6em; }
-    button.primary:hover { background: #115e59; }
-    button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
-    input[type="range"] { width: 100%; margin: 7px 0 3px; min-height: 28px; accent-color: var(--teal); }
-    output, .value { font-weight: 700; font-variant-numeric: tabular-nums; }
-    .jump { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-    .jump button { font-size: .87rem; }
-    .settings { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 12px; }
-    .settings input { max-width: 440px; }
-    .hint { font-size: .87rem; }
-    .grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 14px; margin: 14px 0; }
-    .badge {
-      padding: 3px 9px; background: #edf2f6; border-radius: 999px;
-      font-size: .87rem; font-weight: 700;
+    button:hover, select:hover { background: #18304b; border-color: #3d6383; }
+    button.primary { background: linear-gradient(180deg, #3cc7b4, #229c8c); border-color: #5fe0cd; color: #04121a; font-weight: 750; min-width: 92px; }
+    button.primary:hover { background: linear-gradient(180deg, #51d8c5, #2aae9d); }
+    button[aria-pressed="true"] { background: #1d4157; border-color: var(--accent); color: #c9fff6; }
+    :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+    .panel { background: linear-gradient(180deg, rgba(17, 34, 56, .92), rgba(12, 24, 40, .92)); border: 1px solid var(--line); border-radius: 16px; padding: 18px; min-width: 0; }
+    .hint-text { color: var(--muted); font-size: .82rem; }
+
+    .stage { position: relative; border-radius: 20px; overflow: hidden; border: 1px solid var(--line-2);
+      background: radial-gradient(ellipse 80% 70% at 50% 25%, #1a3150, #0b1729 62%, #060d18);
+      box-shadow: 0 30px 80px -30px rgba(0, 0, 0, .8), inset 0 1px 0 rgba(255, 255, 255, .05); transition: box-shadow .3s; }
+    .stage[data-alert="true"] { box-shadow: 0 30px 80px -30px rgba(0, 0, 0, .8), inset 0 0 0 2px rgba(255, 159, 74, .7), inset 0 0 60px rgba(255, 159, 74, .18); }
+    .stage canvas { display: block; width: 100%; height: clamp(380px, 62vh, 660px); cursor: grab; }
+    .stage canvas:focus-visible { outline: none; box-shadow: inset 0 0 0 3px var(--accent); }
+    .hud { position: absolute; left: 14px; right: 14px; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; pointer-events: none; flex-wrap: wrap; }
+    .hud > * { pointer-events: auto; }
+    .hud-top { top: 14px; }
+    .hud-bottom { bottom: 12px; align-items: flex-end; }
+    .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+    .chip { background: rgba(7, 15, 27, .78); border: 1px solid var(--line-2); border-radius: 999px; padding: 4px 11px; font-size: .8rem; color: #d6e6f5; backdrop-filter: blur(6px); font-variant-numeric: tabular-nums; }
+    .chip.state { border-color: var(--state, var(--line-2)); color: var(--state, #d6e6f5); font-weight: 700; }
+    .chip.live { border-color: #ff7a6b; color: #ffd2cc; }
+    .chip.live::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #ff7a6b; margin-right: 6px; vertical-align: 1px; animation: blink 1.2s infinite; }
+    @keyframes blink { 50% { opacity: .25; } }
+    .views { display: flex; gap: 4px; background: rgba(7, 15, 27, .72); border: 1px solid var(--line-2); border-radius: 12px; padding: 4px; backdrop-filter: blur(6px); }
+    .views button { min-height: 30px; padding: 3px 9px; font-size: .78rem; background: transparent; border-color: transparent; }
+    .views button:hover { background: #1a314b; }
+    .views button[aria-pressed="true"] { background: #1d4157; }
+    .hint { background: rgba(7, 15, 27, .72); border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; color: #b7cadc; font-size: .78rem; backdrop-filter: blur(6px); max-width: 600px; }
+    .hint b { color: #e8f6ff; font-weight: 650; }
+    .pwm-badge { background: rgba(40, 20, 6, .85); border: 1px solid var(--alert); color: #ffd7b0; border-radius: 12px; padding: 7px 12px; font-weight: 750; font-variant-numeric: tabular-nums; display: none; }
+    .stage[data-alert="true"] .pwm-badge { display: block; }
+    .pwm-badge small { display: block; font-weight: 500; font-size: .72rem; color: #ffbd85; }
+
+    .transport { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; margin-top: 12px; }
+    .segmented { display: inline-flex; background: var(--panel); border: 1px solid var(--line-2); border-radius: 11px; padding: 3px; gap: 3px; }
+    .segmented button { border: 0; background: transparent; min-height: 32px; }
+    .segmented button[aria-pressed="true"] { background: #1d4157; color: #c9fff6; box-shadow: inset 0 0 0 1px var(--accent); }
+    .bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+    .bar input[type="range"] { flex: 1; min-width: 120px; }
+    .bar label { color: var(--muted); font-size: .8rem; }
+    .clock { font-variant-numeric: tabular-nums; color: #cfe0f0; font-size: .85rem; white-space: nowrap; min-width: 58px; }
+    .jump { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    .jump button { font-size: .8rem; }
+    .live-only { display: none !important; }
+    body[data-mode="live"] .live-only { display: flex !important; }
+    body[data-mode="live"] .replay-only { display: none !important; }
+    input[type="range"] { accent-color: var(--accent); min-height: 28px; }
+    output { color: var(--accent); font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+
+    .grid { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 12px; margin-top: 12px; }
+    .heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+    svg.map { display: block; width: 100%; max-width: 360px; margin: 10px auto 0; touch-action: none; }
+    body[data-mode="live"] svg.map { cursor: crosshair; }
+    svg.map text { fill: #8ea6bd; font-size: 11px; font-family: inherit; }
+    .legend { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px 14px; color: #b7cadc; font-size: .78rem; margin-top: 8px; }
+    .legend span::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); margin-right: 5px; vertical-align: -1px; }
+    .legend .base::before { background: #9db4cc; }
+    .legend .area::before { background: transparent; border: 1px dashed var(--accent); }
+    .legend .trail::before { width: 14px; height: 2px; border-radius: 2px; background: rgba(79, 209, 191, .6); vertical-align: 3px; }
+
+    .badge { border-radius: 999px; padding: 4px 11px; font-size: .82rem; font-weight: 750; border: 1px solid currentColor; }
+    .badge[data-state="vacant"] { color: #8ea6bd; }
+    .badge[data-state="calibrating"] { color: #b49cff; }
+    .badge[data-state="balanced"] { color: var(--accent); }
+    .badge[data-state="moving"] { color: var(--move); }
+    .badge[data-state="watching"] { color: var(--watch); }
+    .badge[data-state="alert"] { color: var(--alert); background: rgba(255, 159, 74, .12); }
+    .gauges { display: grid; gap: 12px; margin-top: 12px; }
+    .gauge-title { display: flex; justify-content: space-between; font-size: .84rem; color: var(--muted); }
+    .gauge-title b { color: var(--ink); font-variant-numeric: tabular-nums; }
+    .gauge { position: relative; height: 10px; border-radius: 10px; background: #0a1524; margin-top: 5px; overflow: visible; }
+    .gauge i { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: inherit; background: var(--fill, var(--accent)); transition: width .08s linear; }
+    .gauge .mark { position: absolute; top: -4px; bottom: -4px; width: 2px; background: #eaf2fb; border-radius: 2px; }
+    .gauge .mark::after { content: attr(data-label); position: absolute; top: -17px; left: 50%; transform: translateX(-50%); font-size: .68rem; color: #b7cadc; white-space: nowrap; }
+    .gauge .mark.below::after { top: 16px; }
+    .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 14px; margin: 14px 0 0; font-size: .82rem; }
+    .facts div { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+    .facts dt { color: var(--muted); }
+    .facts dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .settings { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+    .settings .gauge-title { color: var(--ink); font-weight: 650; }
+    .settings input { width: 100%; }
+
+    .loads { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+    .load span { color: var(--muted); font-size: .8rem; }
+    .load strong { display: block; font-size: clamp(1.1rem, 2.8vw, 1.5rem); font-variant-numeric: tabular-nums; margin-top: 2px; }
+    .load .gauge i { background: linear-gradient(90deg, #2c8d84, #4fd1bf, #f5d061); }
+    .timeline { margin-top: 12px; }
+    .plot-wrap { display: grid; grid-template-columns: 30px 1fr; grid-template-rows: auto auto; gap: 2px 6px; margin-top: 10px; }
+    .y-labels { display: flex; flex-direction: column; justify-content: space-between; color: #8ea6bd; font-size: .72rem; text-align: right; }
+    .x-labels { grid-column: 2; display: flex; justify-content: space-between; color: #8ea6bd; font-size: .72rem; }
+    svg.track { width: 100%; height: 110px; display: block; background: #08121f; border-radius: 8px; cursor: pointer; }
+    footer { color: var(--muted); font-size: .8rem; margin-top: 18px; line-height: 1.6; }
+    @media (max-width: 880px) {
+      .grid { grid-template-columns: 1fr; }
+      .transport { grid-template-columns: 1fr; }
+      .loads { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
-    .badge[data-state="watching"] { background: #fff4ce; color: #704d00; }
-    .badge[data-state="alert"] { background: var(--alert-bg); color: var(--alert); }
-    .badge[data-state="balanced"] { background: var(--soft); color: var(--teal); }
-    .map { display: block; width: min(100%, 280px); margin: 10px auto; }
-    .map text { fill: var(--muted); font-size: 10px; }
-    .legend { display: flex; flex-wrap: wrap; gap: 6px 15px; font-size: .86rem; color: var(--muted); }
-    .legend span::before {
-      content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 5px;
-      vertical-align: .05em; border-radius: 50%; background: var(--teal);
+    @media (max-width: 560px) {
+      main { padding: 20px 12px 40px; }
+      .panel { padding: 13px; }
+      .hint { display: none; }
+      .facts { grid-template-columns: 1fr; }
+      .views button[data-view="top"], .views button[data-view="back"] { display: none; }
     }
-    .legend .area::before { background: var(--soft); border: 1px dashed var(--teal); }
-    .legend .base::before { background: #415a76; }
-    dl { display: grid; grid-template-columns: 1fr auto; gap: 9px 12px; margin: 12px 0 0; }
-    dd { margin: 0; text-align: right; }
-    .loads { margin-top: 15px; padding-top: 14px; border-top: 1px solid var(--line); }
-    .loads dl { grid-template-columns: 1fr auto 1fr auto; }
-    .loads dt { white-space: nowrap; }
-    .plot-wrap { margin: 14px 0 8px; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: stretch; gap: 0 7px; }
-    .y-labels { display: flex; flex-direction: column; justify-content: space-between; text-align: right; padding: 1px 0; }
-    .axis { color: var(--muted); font-size: .75rem; font-variant-numeric: tabular-nums; }
-    .timeline { display: block; width: 100%; height: 108px; }
-    .x-labels { grid-column: 2; display: flex; justify-content: space-between; }
-    .timeline line, .timeline path { vector-effect: non-scaling-stroke; }
-    .track-info { margin-top: 4px; font-size: .89rem; color: var(--muted); }
-    footer { margin-top: 14px; }
-    @media (max-width: 670px) { .grid { grid-template-columns: 1fr; } }
-    @media (max-width: 550px) { .stage-loads { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-    @media (max-width: 380px) { .loads dl { gap: 6px; font-size: .92rem; } }
+    @media (prefers-reduced-motion: reduce) { .chip.live::before { animation: none; } }
   </style>
 </head>
-<body>
+<body data-mode="replay">
   <main>
-    <header>
-      <p class="course">물리학과 AI 코딩 과제 07</p>
-      <h1>자세 교정 스마트 방석 시뮬레이터</h1>
-      <p>네 모서리의 하중으로 압력 중심을 계산하고, 쏠림이 지속될 때 가상 진동을 켭니다.</p>
+    <header class="hero">
+      <div>
+        <p class="eyebrow">물리학과 AI 코딩 · 실험 07</p>
+        <h1>자세 교정 스마트 방석 시뮬레이터</h1>
+        <p class="intro">방석 네 모서리의 하중으로 압력 중심을 구하고, 기준점에서 벗어난 채 오래 머물면 가상 진동을 켭니다. 64초 시나리오를 재생하거나, <b>직접 앉아보기</b>에서 방석 위 압력 중심을 끌어 몸을 기울여 보세요.</p>
+      </div>
+      <div class="spec" aria-label="모델 조건">
+        <span>FSR 4개 · 20 Hz</span><span>착석 50 N 이상</span><span>기준점 5초</span><span>거리 &gt; 0.30</span><span>속도 ≤ 0.10/s</span>
+      </div>
     </header>
 
-    <section class="panel" aria-labelledby="scenario-title">
-      <h2 id="scenario-title">착석 시나리오</h2>
-      <p class="hint">64초 동안 빈 의자, 짧은 움직임, 지속 쏠림, 복귀와 재착석을 차례로 재현합니다.</p>
-      <div class="toolbar">
+    <section class="stage" id="seat-stage" data-alert="false" aria-labelledby="stage-title">
+      <h2 id="stage-title" hidden>3D 착석 장면</h2>
+      <canvas id="seat-scene" tabindex="0" role="img" aria-label="의자 위 방석과 착석 모형, 네 하중 센서와 압력 분포를 보여 주는 3차원 장면. 드래그해 회전할 수 있습니다."></canvas>
+      <div class="hud hud-top">
+        <div class="chips">
+          <span class="chip" id="mode-chip">시나리오 재생</span>
+          <span class="chip state" id="stage-state">미착석</span>
+          <span class="chip" id="stage-phase">빈 의자</span>
+        </div>
+        <div class="views" role="group" aria-label="시점 바꾸기">
+          <button type="button" data-view="home">기본 시점</button>
+          <button type="button" data-view="front">정면</button>
+          <button type="button" data-view="back">반대쪽</button>
+          <button type="button" data-view="top">위</button>
+          <button type="button" id="zoom-in" aria-label="확대">＋</button>
+          <button type="button" id="zoom-out" aria-label="축소">－</button>
+        </div>
+      </div>
+      <div class="hud hud-bottom">
+        <p class="hint" id="hint"><b>드래그</b> 회전 · <b>클릭 후 휠/핀치</b> 확대 · <b>직접 앉아보기</b>에서는 방석을 끌어 압력 중심을 옮깁니다</p>
+        <div class="pwm-badge" id="pwm-badge">진동 PWM <span id="pwm-badge-value">0</span><small>코인 진동 모터 작동 중</small></div>
+      </div>
+    </section>
+
+    <div class="transport">
+      <div class="segmented" role="group" aria-label="실행 방식">
+        <button type="button" id="mode-replay" aria-pressed="true">시나리오 재생</button>
+        <button type="button" id="mode-live" aria-pressed="false">직접 앉아보기</button>
+      </div>
+      <div class="bar">
         <button class="primary" id="play" type="button">재생</button>
-        <label for="speed">재생 속도</label>
+        <input class="replay-only" id="time" type="range" min="0" max="63.95" step="0.05" value="0" aria-label="시나리오 시간">
+        <output class="clock replay-only" id="clock" for="time">0.00초</output>
+        <label for="speed">속도</label>
         <select id="speed">
           <option value="1">1배</option>
           <option value="2" selected>2배</option>
@@ -125,98 +210,795 @@
         </select>
         <button id="reset" type="button">초기화</button>
       </div>
-      <div class="stage" id="seat-stage" data-alert="false">
-        <div class="stage-heading">
-          <div><p class="stage-label">3D 착석 장면</p><p class="stage-state" id="stage-state">미착석</p></div>
-          <button id="view-angle" type="button" aria-pressed="false">반대쪽에서 보기</button>
-        </div>
-        <canvas id="seat-scene" role="img" aria-label="기울어지는 착석 모형과 방석의 네 하중 센서, 주황색 진동 표시"></canvas>
-        <div class="stage-loads" id="stage-loads"></div>
-      </div>
-      <p class="hint stage-note">착석 모형의 기울기는 압력 중심 이동을 강조해 나타냅니다. 가상 진동이 켜지면 방석 옆에 주황색 파형이 나타납니다.</p>
-      <div class="range-title"><label for="time">시나리오 시간</label><output id="clock" for="time" aria-live="off">0.00초</output></div>
-      <input id="time" type="range" min="0" max="63.95" step="0.05" value="0">
-      <div class="jump" role="group" aria-label="관찰할 구간으로 이동">
-        <button type="button" data-time="13.5">짧은 움직임</button>
-        <button type="button" data-time="37.8">지속 쏠림</button>
-        <button type="button" data-time="60">재착석</button>
-      </div>
-      <div class="settings">
-        <div class="range-title"><label for="hold">알림까지 연속으로 쏠려야 하는 시간</label><output id="hold-value" for="hold">15초</output></div>
-        <input id="hold" type="range" min="5" max="25" step="1" value="15" aria-describedby="hold-help">
-        <p class="hint" id="hold-help">기준점에서 거리 0.30을 넘고 중심 이동 속도가 0.10/s 이하일 때 시간을 잽니다. 25초로 높이면 기본 시나리오에서 알림이 켜지지 않습니다.</p>
-      </div>
-    </section>
+    </div>
+    <div class="jump replay-only" role="group" aria-label="관찰할 구간으로 이동">
+      <button type="button" data-time="13.5">짧은 움직임</button>
+      <button type="button" data-time="37.8">지속 쏠림</button>
+      <button type="button" data-time="44">복귀</button>
+      <button type="button" data-time="60">재착석</button>
+    </div>
+    <div class="jump live-only" role="group" aria-label="직접 조작">
+      <button type="button" id="sit">일어나기</button>
+      <button type="button" id="center">기준 자세로</button>
+      <button type="button" data-lean="right">오른쪽으로 쏠리기</button>
+      <button type="button" data-lean="front">앞으로 숙이기</button>
+      <label for="weight" class="hint-text" style="align-self:center">체중 하중</label>
+      <input id="weight" type="range" min="300" max="900" step="10" value="650" style="width:150px">
+      <output id="weight-value" for="weight" style="align-self:center">650 N</output>
+    </div>
 
     <div class="grid">
       <section class="panel" aria-labelledby="map-title">
-        <h2 id="map-title">방석 위 압력 중심</h2>
-        <svg class="map" viewBox="0 0 240 240" role="img" aria-label="방석을 위에서 본 네 모서리 센서와 압력 중심 지도">
+        <div class="heading"><h2 id="map-title">방석 위 압력 중심</h2><span class="hint-text" id="map-hint">위에서 본 방석</span></div>
+        <svg class="map" id="map" viewBox="0 0 240 240" role="img" aria-label="방석을 위에서 본 네 모서리 센서와 압력 중심 지도">
+          <defs>
+            <radialGradient id="heat" r="0.5">
+              <stop offset="0" stop-color="#ffb347" stop-opacity=".75"/>
+              <stop offset=".5" stop-color="#4fd1bf" stop-opacity=".25"/>
+              <stop offset="1" stop-color="#4fd1bf" stop-opacity="0"/>
+            </radialGradient>
+            <clipPath id="cushion-clip"><rect x="28" y="28" width="184" height="184" rx="20"/></clipPath>
+          </defs>
           <text x="120" y="13" text-anchor="middle">앞</text>
           <text x="120" y="235" text-anchor="middle">뒤</text>
-          <rect x="28" y="28" width="184" height="184" rx="18" fill="#f6f9fb" stroke="#bdcad7"/>
-          <path d="M28 120h184 M120 28v184" stroke="#d6e1e8" stroke-dasharray="4 4"/>
-          <circle id="zone" r="24.6" fill="#e1f3ef" stroke="#0f766e" stroke-dasharray="4 3" visibility="hidden"/>
-          <circle id="baseline" r="4" fill="#415a76" visibility="hidden"/>
-          <circle id="center" r="6" fill="#0f766e" stroke="#fff" stroke-width="1.5" visibility="hidden"/>
-          <g fill="#0f766e" stroke="#0f766e">
-            <circle id="sensor0" cx="38" cy="202" r="5"/>
-            <circle id="sensor1" cx="202" cy="202" r="5"/>
-            <circle id="sensor2" cx="38" cy="38" r="5"/>
-            <circle id="sensor3" cx="202" cy="38" r="5"/>
+          <rect x="28" y="28" width="184" height="184" rx="20" fill="#0f2033" stroke="#2c4864"/>
+          <path d="M28 120h184 M120 28v184" stroke="#21384f" stroke-dasharray="4 4"/>
+          <circle id="heat-blob" r="70" fill="url(#heat)" visibility="hidden" clip-path="url(#cushion-clip)"/>
+          <polyline id="trail" fill="none" stroke="rgba(79,209,191,.55)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+          <circle id="zone" r="24.6" fill="rgba(79,209,191,.08)" stroke="#4fd1bf" stroke-dasharray="4 3" visibility="hidden"/>
+          <circle id="baseline" r="4" fill="#9db4cc" visibility="hidden"/>
+          <circle id="target" r="9" fill="none" stroke="#ff9f4a" stroke-width="1.5" stroke-dasharray="3 2" visibility="hidden"/>
+          <circle id="center" r="6.5" fill="#4fd1bf" stroke="#fff" stroke-width="1.5" visibility="hidden"/>
+          <g>
+            <circle id="sensor0" cx="38" cy="202" r="6" fill="#4fd1bf" stroke="#4fd1bf"/>
+            <circle id="sensor1" cx="202" cy="202" r="6" fill="#4fd1bf" stroke="#4fd1bf"/>
+            <circle id="sensor2" cx="38" cy="38" r="6" fill="#4fd1bf" stroke="#4fd1bf"/>
+            <circle id="sensor3" cx="202" cy="38" r="6" fill="#4fd1bf" stroke="#4fd1bf"/>
           </g>
-          <text x="48" y="40">좌전</text><text x="192" y="40" text-anchor="end">우전</text>
-          <text x="48" y="205">좌후</text><text x="192" y="205" text-anchor="end">우후</text>
+          <text x="50" y="41">좌전</text><text x="190" y="41" text-anchor="end">우전</text>
+          <text x="50" y="205">좌후</text><text x="190" y="205" text-anchor="end">우후</text>
         </svg>
-        <div class="legend"><span>현재 중심</span><span class="base">착석 기준점</span><span class="area">허용 범위</span></div>
+        <div class="legend"><span>현재 중심</span><span class="base">착석 기준점</span><span class="area">허용 범위 0.30</span><span class="trail">최근 3초 궤적</span></div>
       </section>
+
       <section class="panel" aria-labelledby="readout-heading">
-        <div class="readout-title">
+        <div class="heading">
           <h2 id="readout-heading">현재 판정</h2>
           <span class="badge" id="state" data-state="vacant">미착석</span>
         </div>
-        <p class="hint" id="phase">빈 의자</p>
-        <dl class="value">
-          <dt>가상 진동 PWM</dt><dd id="pwm">0 / 255</dd>
-          <dt>연속 쏠림 시간</dt><dd id="elapsed">0.00초</dd>
-          <dt>기준점과의 거리</dt><dd id="distance">—</dd>
-          <dt>중심 이동 속도</dt><dd id="velocity">—</dd>
-          <dt>압력 중심 (x, y)</dt><dd id="center-xy">—</dd>
-          <dt>착석 기준점 (x, y)</dt><dd id="baseline-xy">—</dd>
+        <p class="hint-text" id="phase" style="margin-top:4px">빈 의자</p>
+        <div class="gauges">
+          <div>
+            <div class="gauge-title"><span>기준점과의 거리</span><b id="distance">—</b></div>
+            <div class="gauge"><i id="distance-bar"></i><span class="mark" data-label="0.30" style="left:50%"></span></div>
+          </div>
+          <div>
+            <div class="gauge-title"><span>중심 이동 속도</span><b id="velocity">—</b></div>
+            <div class="gauge"><i id="velocity-bar"></i><span class="mark" data-label="0.10/s" style="left:33.3%"></span></div>
+          </div>
+          <div>
+            <div class="gauge-title"><span>연속 쏠림 시간</span><b id="elapsed">0.00초</b></div>
+            <div class="gauge"><i id="elapsed-bar" style="--fill: var(--watch)"></i><span class="mark below" id="hold-mark" data-label="15초" style="left:calc(100% - 2px)"></span></div>
+          </div>
+          <div>
+            <div class="gauge-title"><span>가상 진동 PWM</span><b id="pwm">0 / 255</b></div>
+            <div class="gauge"><i id="pwm-bar" style="--fill: var(--alert)"></i></div>
+          </div>
+        </div>
+        <dl class="facts">
+          <div><dt>압력 중심 (x, y)</dt><dd id="center-xy">—</dd></div>
+          <div><dt>착석 기준점 (x, y)</dt><dd id="baseline-xy">—</dd></div>
         </dl>
-        <div class="loads">
-          <h2>모서리 센서 하중</h2>
-          <dl class="value">
-            <dt>왼쪽 앞</dt><dd id="load2">0.0 N</dd>
-            <dt>오른쪽 앞</dt><dd id="load3">0.0 N</dd>
-            <dt>왼쪽 뒤</dt><dd id="load0">0.0 N</dd>
-            <dt>오른쪽 뒤</dt><dd id="load1">0.0 N</dd>
-          </dl>
+        <div class="settings">
+          <div class="gauge-title"><label for="hold">알림까지 연속으로 쏠려야 하는 시간</label><output id="hold-value" for="hold">15초</output></div>
+          <input id="hold" type="range" min="5" max="25" step="1" value="15" aria-describedby="hold-help">
+          <p class="hint-text" id="hold-help">기준점에서 거리 0.30을 넘고 중심 이동 속도가 0.10/s 이하일 때 시간을 잽니다. 25초로 높이면 기본 시나리오에서 알림이 켜지지 않습니다.</p>
         </div>
       </section>
     </div>
 
-    <section class="panel" aria-labelledby="timeline-title">
-      <h2 id="timeline-title">시간에 따른 가상 진동 출력</h2>
-      <p class="track-info" id="alert-summary"></p>
-      <div class="plot-wrap">
-        <div class="axis y-labels" aria-hidden="true"><span>200</span><span>100</span><span>0</span></div>
-        <svg class="timeline" viewBox="0 0 640 108" preserveAspectRatio="none" role="img" aria-label="시간에 따른 PWM 그래프와 현재 위치">
-          <path d="M0 6H640 M0 54H640 M0 102H640" fill="none" stroke="#d6e1e8"/>
-          <path id="pwm-path" fill="none" stroke="#0f766e" stroke-width="2.5" stroke-linejoin="round"/>
-          <line id="cursor" x1="0" x2="0" y1="0" y2="108" stroke="#a53e29" stroke-width="2" stroke-dasharray="4 3"/>
-        </svg>
-        <div class="axis x-labels" aria-hidden="true"><span>0초</span><span>16초</span><span>32초</span><span>48초</span><span>64초</span></div>
-      </div>
-      <p class="hint">청록색은 0–255 범위에서 계산한 PWM 명령이고, 점선은 선택한 시각입니다. 시뮬레이션에서는 최대 200을 사용합니다.</p>
+    <section class="loads" aria-label="모서리 센서 하중">
+      <article class="panel load"><span>왼쪽 앞 FSR</span><strong id="load2">0.0 N</strong><div class="gauge"><i id="load-bar2"></i></div></article>
+      <article class="panel load"><span>오른쪽 앞 FSR</span><strong id="load3">0.0 N</strong><div class="gauge"><i id="load-bar3"></i></div></article>
+      <article class="panel load"><span>왼쪽 뒤 FSR</span><strong id="load0">0.0 N</strong><div class="gauge"><i id="load-bar0"></i></div></article>
+      <article class="panel load"><span>오른쪽 뒤 FSR</span><strong id="load1">0.0 N</strong><div class="gauge"><i id="load-bar1"></i></div></article>
     </section>
 
-    <footer class="hint">거리와 좌표는 방석 반폭과 반길이 기준의 정규화 값입니다. 20 Hz 가상 센서의 난수열은 Python과 달라 계산값에 작은 차이가 생길 수 있습니다.</footer>
+    <section class="panel timeline" aria-labelledby="timeline-title">
+      <div class="heading"><h2 id="timeline-title">시간에 따른 가상 진동 출력</h2><span class="hint-text" id="alert-summary"></span></div>
+      <div class="plot-wrap">
+        <div class="y-labels" aria-hidden="true"><span>200</span><span>100</span><span>0</span></div>
+        <svg class="track" id="track" viewBox="0 0 640 108" preserveAspectRatio="none" role="img" aria-label="시간에 따른 PWM 그래프와 현재 위치. 누르면 그 시각으로 이동합니다.">
+          <g id="state-bands"></g>
+          <path d="M0 6H640 M0 54H640 M0 102H640" fill="none" stroke="rgba(140,180,215,.13)"/>
+          <path id="pwm-fill" fill="rgba(255,159,74,.16)"/>
+          <path id="pwm-path" fill="none" stroke="#ff9f4a" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+          <line id="cursor" x1="0" x2="0" y1="0" y2="108" stroke="#eaf2fb" stroke-width="1.5" stroke-dasharray="4 3" vector-effect="non-scaling-stroke"/>
+        </svg>
+        <div class="x-labels" aria-hidden="true" id="x-labels"><span>0초</span><span>16초</span><span>32초</span><span>48초</span><span>64초</span></div>
+      </div>
+      <p class="hint-text" style="margin-top:8px">주황색은 0–255 범위에서 계산한 PWM 명령이고, 배경 색은 판정 상태(노랑: 쏠림 확인, 주황: 진동)입니다. 시뮬레이션에서는 최대 200을 사용합니다. 그래프를 누르면 그 시각으로 이동합니다.</p>
+    </section>
+
+    <footer>거리와 좌표는 방석 반폭과 반길이 기준의 정규화 값입니다. 20 Hz 가상 센서의 난수열은 Python과 달라 계산값에 작은 차이가 생길 수 있습니다. 착석 모형의 기울기, 방석 위 압력 색, 진동 물결은 압력 중심 이동과 PWM을 잘 보이게 표현한 것입니다. 직접 앉아보기에서는 같은 하중 모델과 판정 로직을 실시간으로 실행합니다.</footer>
     <noscript><p>시뮬레이터를 실행하려면 브라우저에서 JavaScript를 켜 주세요.</p></noscript>
   </main>
+
   <script>
     "use strict";
+    /* ───────── 미니 3D 엔진: 궤도 카메라 · 원근 투영 · 깊이 정렬 · 조명 · 선택 ───────── */
+    const V3 = {
+      add: (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]],
+      sub: (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]],
+      mul: (a, s) => [a[0] * s, a[1] * s, a[2] * s],
+      dot: (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2],
+      cross: (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]],
+      norm: a => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; },
+      lerp: (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t],
+    };
+    const Rot = {
+      x: a => { const c = Math.cos(a), s = Math.sin(a); return [[1, 0, 0], [0, c, -s], [0, s, c]]; },
+      y: a => { const c = Math.cos(a), s = Math.sin(a); return [[c, 0, s], [0, 1, 0], [-s, 0, c]]; },
+      z: a => { const c = Math.cos(a), s = Math.sin(a); return [[c, -s, 0], [s, c, 0], [0, 0, 1]]; },
+      mul: (A, B) => A.map(r => [0, 1, 2].map(j => r[0] * B[0][j] + r[1] * B[1][j] + r[2] * B[2][j])),
+      apply: (M, v) => [
+        M[0][0] * v[0] + M[0][1] * v[1] + M[0][2] * v[2],
+        M[1][0] * v[0] + M[1][1] * v[1] + M[1][2] * v[2],
+        M[2][0] * v[0] + M[2][1] * v[1] + M[2][2] * v[2],
+      ],
+    };
+    const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
+    const mix = (a, b, t) => a.map((value, i) => value + (b[i] - value) * t);
+    const rgbCss = (c, alpha = 1) => `rgba(${Math.round(c[0])},${Math.round(c[1])},${Math.round(c[2])},${alpha})`;
 
+    class Scene3D {
+      constructor(canvas, options = {}) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext("2d");
+        this.home = { yaw: 0.6, pitch: 0.45, dist: 8, target: [0, 0, 0], ...options.view };
+        this.cam = { ...this.home, target: [...this.home.target] };
+        this.minDist = options.minDist ?? 2;
+        this.maxDist = options.maxDist ?? 30;
+        this.minPitch = options.minPitch ?? 0.02;
+        this.maxPitch = options.maxPitch ?? 1.45;
+        this.fov = options.fov ?? 0.7;
+        this.light = V3.norm(options.light ?? [-0.45, 0.85, 0.55]);
+        this.ambient = options.ambient ?? 0.36;
+        this.fog = options.fog ?? null;
+        this.onPick = options.onPick;
+        this.onHover = options.onHover;
+        this.draggable = options.draggable ?? (() => false);
+        this.onDragStart = options.onDragStart;
+        this.onDrag = options.onDrag;
+        this.onDragEnd = options.onDragEnd;
+        this.onCamera = options.onCamera;
+        this.items = [];
+        this.glows = [];
+        this.overlay = [];
+        this.picks = [];
+        this.pointers = new Map();
+        this.tween = null;
+        this.spin = 0;
+        this.dirty = true;
+        this.engaged = false;
+        this.hoverId = null;
+        this.w = 0;
+        this.h = 0;
+        this.bind();
+        if (window.ResizeObserver) new ResizeObserver(() => { this.dirty = true; }).observe(canvas);
+      }
+
+      bind() {
+        const canvas = this.canvas;
+        canvas.style.touchAction = "none";
+        if (!canvas.hasAttribute("tabindex")) canvas.tabIndex = 0;
+        const local = event => {
+          const box = canvas.getBoundingClientRect();
+          return [event.clientX - box.left, event.clientY - box.top];
+        };
+        canvas.addEventListener("pointerdown", event => {
+          try { canvas.setPointerCapture(event.pointerId); } catch (error) { /* 무시 */ }
+          const point = local(event);
+          this.pointers.set(event.pointerId, point);
+          this.engaged = true;
+          this.tween = null;
+          this.spin = 0;
+          if (this.pointers.size === 1) {
+            const id = this.hit(point);
+            const drag = id != null && this.draggable(id);
+            this.gesture = { start: point, last: point, moved: 0, id, drag, time: performance.now() };
+            if (drag) {
+              canvas.style.cursor = "grabbing";
+              this.onDragStart?.(id, point, this);
+            }
+          } else {
+            if (this.gesture?.drag) this.onDragEnd?.(this.gesture.id, 99, this);
+            this.gesture = { pinch: this.pinchDistance(), dist: this.cam.dist };
+          }
+          this.dirty = true;
+        });
+        canvas.addEventListener("pointermove", event => {
+          const point = local(event);
+          if (!this.pointers.has(event.pointerId)) {
+            const id = this.hit(point);
+            if (id !== this.hoverId) {
+              this.hoverId = id;
+              this.onHover?.(id, this);
+              this.dirty = true;
+            }
+            canvas.style.cursor = id != null ? (this.draggable(id) ? "ns-resize" : "pointer") : "grab";
+            return;
+          }
+          this.pointers.set(event.pointerId, point);
+          const gesture = this.gesture;
+          if (!gesture) return;
+          if (gesture.pinch) {
+            const distance = this.pinchDistance();
+            if (distance > 0 && gesture.pinch > 0) {
+              this.cam.dist = clamp(gesture.dist * gesture.pinch / distance, this.minDist, this.maxDist);
+              this.changed();
+            }
+            return;
+          }
+          const dx = point[0] - gesture.last[0];
+          const dy = point[1] - gesture.last[1];
+          gesture.moved += Math.abs(dx) + Math.abs(dy);
+          gesture.last = point;
+          gesture.moveTime = performance.now();
+          if (gesture.drag) {
+            this.onDrag?.(gesture.id, point, this);
+            this.dirty = true;
+            return;
+          }
+          if (gesture.moved > 4) {
+            canvas.style.cursor = "grabbing";
+            this.cam.yaw -= dx * 0.0085;
+            this.cam.pitch = clamp(this.cam.pitch + dy * 0.0065, this.minPitch, this.maxPitch);
+            this.spin = -dx * 0.0085;
+            this.changed();
+          }
+        });
+        const end = event => {
+          if (!this.pointers.has(event.pointerId)) return;
+          this.pointers.delete(event.pointerId);
+          const gesture = this.gesture;
+          if (gesture && !gesture.pinch) {
+            if (gesture.drag) this.onDragEnd?.(gesture.id, gesture.moved, this);
+            else if (gesture.moved <= 5 && event.type === "pointerup") this.onPick?.(this.hit(gesture.last), gesture.last, this);
+            if (!gesture.moveTime || performance.now() - gesture.moveTime > 90 || gesture.drag) this.spin = 0;
+          } else {
+            this.spin = 0;
+          }
+          this.gesture = null;
+          canvas.style.cursor = "grab";
+          this.dirty = true;
+        };
+        canvas.addEventListener("pointerup", end);
+        canvas.addEventListener("pointercancel", end);
+        canvas.addEventListener("pointerleave", () => {
+          if (!this.pointers.size) {
+            this.engaged = false;
+            if (this.hoverId != null) {
+              this.hoverId = null;
+              this.onHover?.(null, this);
+              this.dirty = true;
+            }
+          }
+        });
+        canvas.addEventListener("wheel", event => {
+          if (!this.engaged && !event.ctrlKey) return;
+          event.preventDefault();
+          this.zoom(Math.exp(event.deltaY * (event.ctrlKey ? 0.01 : 0.0012)));
+        }, { passive: false });
+        canvas.addEventListener("keydown", event => {
+          const actions = {
+            ArrowLeft: () => { this.cam.yaw += 0.12; },
+            ArrowRight: () => { this.cam.yaw -= 0.12; },
+            ArrowUp: () => { this.cam.pitch = clamp(this.cam.pitch + 0.08, this.minPitch, this.maxPitch); },
+            ArrowDown: () => { this.cam.pitch = clamp(this.cam.pitch - 0.08, this.minPitch, this.maxPitch); },
+            "+": () => this.zoom(0.88), "=": () => this.zoom(0.88), "-": () => this.zoom(1.14),
+            "0": () => this.reset(), Home: () => this.reset(),
+          };
+          if (!actions[event.key]) return;
+          event.preventDefault();
+          this.tween = null;
+          actions[event.key]();
+          this.changed();
+        });
+      }
+
+      pinchDistance() {
+        const [a, b] = [...this.pointers.values()];
+        return a && b ? Math.hypot(a[0] - b[0], a[1] - b[1]) : 0;
+      }
+
+      changed() {
+        this.dirty = true;
+        this.onCamera?.(this);
+      }
+
+      zoom(factor) {
+        this.tween = null;
+        this.cam.dist = clamp(this.cam.dist * factor, this.minDist, this.maxDist);
+        this.changed();
+      }
+
+      reset() {
+        this.setView(this.home);
+      }
+
+      setView(view, duration = 700) {
+        const from = { ...this.cam, target: [...this.cam.target] };
+        const to = { ...from, ...view, target: [...(view.target ?? from.target)] };
+        while (to.yaw - from.yaw > Math.PI) to.yaw -= 2 * Math.PI;
+        while (to.yaw - from.yaw < -Math.PI) to.yaw += 2 * Math.PI;
+        this.spin = 0;
+        this.tween = { from, to, start: performance.now(), duration };
+        this.dirty = true;
+      }
+
+      update(dt) {
+        let moving = false;
+        if (this.tween) {
+          const { from, to, start, duration } = this.tween;
+          const raw = clamp((performance.now() - start) / duration, 0, 1);
+          const t = raw < 0.5 ? 4 * raw ** 3 : 1 - (-2 * raw + 2) ** 3 / 2;
+          this.cam.yaw = from.yaw + (to.yaw - from.yaw) * t;
+          this.cam.pitch = from.pitch + (to.pitch - from.pitch) * t;
+          this.cam.dist = from.dist + (to.dist - from.dist) * t;
+          this.cam.target = V3.lerp(from.target, to.target, t);
+          if (raw >= 1) this.tween = null;
+          moving = true;
+        } else if (Math.abs(this.spin) > 2e-4 && !this.gesture) {
+          this.cam.yaw += this.spin;
+          this.spin *= Math.pow(0.9, dt * 60);
+          moving = true;
+        }
+        if (moving) this.changed();
+        return moving || this.dirty;
+      }
+
+      begin() {
+        const canvas = this.canvas;
+        const width = canvas.clientWidth;
+        const height = canvas.clientHeight;
+        if (!width || !height || !this.ctx) return false;
+        const density = Math.min(window.devicePixelRatio || 1, 2);
+        const pixelWidth = Math.round(width * density);
+        const pixelHeight = Math.round(height * density);
+        if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+          canvas.width = pixelWidth;
+          canvas.height = pixelHeight;
+        }
+        this.w = width;
+        this.h = height;
+        this.ctx.setTransform(density, 0, 0, density, 0, 0);
+        this.ctx.clearRect(0, 0, width, height);
+        const { yaw, pitch, dist, target } = this.cam;
+        const cosPitch = Math.cos(pitch);
+        this.eye = [
+          target[0] + dist * cosPitch * Math.sin(yaw),
+          target[1] + dist * Math.sin(pitch),
+          target[2] + dist * cosPitch * Math.cos(yaw),
+        ];
+        this.f = V3.norm(V3.sub(target, this.eye));
+        this.r = V3.norm(V3.cross(this.f, [0, 1, 0]));
+        this.u = V3.cross(this.r, this.f);
+        this.focal = Math.min(height, width * 0.78) / (2 * Math.tan(this.fov / 2));
+        this.cx = width / 2;
+        this.cy = height / 2;
+        this.items = [];
+        this.glows = [];
+        this.overlay = [];
+        this.dirty = false;
+        return true;
+      }
+
+      project(point) {
+        const v = [point[0] - this.eye[0], point[1] - this.eye[1], point[2] - this.eye[2]];
+        const z = v[0] * this.f[0] + v[1] * this.f[1] + v[2] * this.f[2];
+        if (z < 0.12) return null;
+        const s = this.focal / z;
+        return [
+          this.cx + (v[0] * this.r[0] + v[1] * this.r[1] + v[2] * this.r[2]) * s,
+          this.cy - (v[0] * this.u[0] + v[1] * this.u[1] + v[2] * this.u[2]) * s,
+          z,
+        ];
+      }
+
+      ray(screen) {
+        const dx = (screen[0] - this.cx) / this.focal;
+        const dy = -(screen[1] - this.cy) / this.focal;
+        return { origin: this.eye, dir: V3.norm(V3.add(this.f, V3.add(V3.mul(this.r, dx), V3.mul(this.u, dy)))) };
+      }
+
+      rayPlaneY(screen, height) {
+        const { origin, dir } = this.ray(screen);
+        if (Math.abs(dir[1]) < 1e-6) return null;
+        const t = (height - origin[1]) / dir[1];
+        return t > 0 ? V3.add(origin, V3.mul(dir, t)) : null;
+      }
+
+      shade(color, normal, point, options) {
+        if (options.emissive) return color;
+        const lambert = Math.max(0, V3.dot(normal, this.light));
+        const view = V3.norm(V3.sub(this.eye, point));
+        const half = V3.norm(V3.add(this.light, view));
+        const specular = Math.pow(Math.max(0, V3.dot(normal, half)), options.shine ?? 28) * (options.gloss ?? 0.16);
+        const rim = Math.pow(1 - Math.max(0, V3.dot(normal, view)), 3) * (options.rim ?? 0.1);
+        const k = this.ambient + (1 - this.ambient) * lambert;
+        const extra = 255 * (specular + rim);
+        return [color[0] * k + extra, color[1] * k + extra, color[2] * k + extra].map(v => Math.min(255, v));
+      }
+
+      fogged(color, z) {
+        if (!this.fog) return color;
+        const t = clamp((z - this.fog.near) / (this.fog.far - this.fog.near), 0, 1) * (this.fog.max ?? 0.7);
+        return mix(color, this.fog.color, t);
+      }
+
+      face(points, color, options = {}) {
+        let normal = options.normal;
+        if (!normal) {
+          normal = [0, 0, 0];
+          for (let i = 0; i < points.length; i += 1) {
+            const a = points[i];
+            const b = points[(i + 1) % points.length];
+            normal[0] += (a[1] - b[1]) * (a[2] + b[2]);
+            normal[1] += (a[2] - b[2]) * (a[0] + b[0]);
+            normal[2] += (a[0] - b[0]) * (a[1] + b[1]);
+          }
+          normal = V3.norm(normal);
+        }
+        if (V3.dot(normal, V3.sub(this.eye, points[0])) <= 0) {
+          if (!options.twoSided) return;
+          normal = V3.mul(normal, -1);
+        }
+        const screen = [];
+        let depth = 0;
+        const center = [0, 0, 0];
+        for (const point of points) {
+          const projected = this.project(point);
+          if (!projected) return;
+          screen.push(projected);
+          depth += projected[2];
+          center[0] += point[0];
+          center[1] += point[1];
+          center[2] += point[2];
+        }
+        depth /= points.length;
+        const shaded = this.fogged(this.shade(color, normal, V3.mul(center, 1 / points.length), options), depth);
+        this.items.push({
+          kind: 0, pts: screen, z: options.z ?? depth + (options.bias ?? 0), rgb: shaded,
+          alpha: options.alpha ?? 1, id: options.id, stroke: options.stroke, strokeWidth: options.strokeWidth,
+        });
+      }
+
+      quad(points, color, options = {}) {
+        this.face(points, color, options);
+      }
+
+      box(center, half, color, options = {}) {
+        const rotation = options.rot;
+        const corner = (x, y, z) => {
+          let v = [x * half[0], y * half[1], z * half[2]];
+          if (rotation) v = Rot.apply(rotation, v);
+          return V3.add(center, v);
+        };
+        const v = [
+          corner(-1, -1, -1), corner(1, -1, -1), corner(1, 1, -1), corner(-1, 1, -1),
+          corner(-1, -1, 1), corner(1, -1, 1), corner(1, 1, 1), corner(-1, 1, 1),
+        ];
+        const faces = [
+          [[0, 3, 2, 1], [0, 0, -1], "back"], [[4, 5, 6, 7], [0, 0, 1], "front"],
+          [[0, 4, 7, 3], [-1, 0, 0], "left"], [[1, 2, 6, 5], [1, 0, 0], "right"],
+          [[0, 1, 5, 4], [0, -1, 0], "bottom"], [[3, 7, 6, 2], [0, 1, 0], "top"],
+        ];
+        for (const [indices, normal, name] of faces) {
+          const faceColor = options.faces?.[name] ?? color;
+          if (faceColor === null) continue;
+          this.face(indices.map(i => v[i]), faceColor, {
+            ...options, normal: rotation ? Rot.apply(rotation, normal) : normal,
+          });
+        }
+      }
+
+      cylinder(a, b, radius, color, options = {}) {
+        const segments = options.segments ?? 20;
+        const radiusB = options.radiusB ?? radius;
+        const axis = V3.norm(V3.sub(b, a));
+        const e1 = V3.norm(V3.cross(axis, Math.abs(axis[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0]));
+        const e2 = V3.cross(axis, e1);
+        const ringA = [];
+        const ringB = [];
+        const normals = [];
+        for (let i = 0; i < segments; i += 1) {
+          const angle = 2 * Math.PI * i / segments;
+          const dir = V3.add(V3.mul(e1, Math.cos(angle)), V3.mul(e2, Math.sin(angle)));
+          normals.push(dir);
+          ringA.push(V3.add(a, V3.mul(dir, radius)));
+          ringB.push(V3.add(b, V3.mul(dir, radiusB)));
+        }
+        for (let i = 0; i < segments; i += 1) {
+          const j = (i + 1) % segments;
+          const normal = V3.norm(V3.add(normals[i], normals[j]));
+          this.face([ringA[i], ringA[j], ringB[j], ringB[i]], options.sideColor ?? color, { ...options, normal });
+        }
+        if (options.caps !== false) {
+          this.face([...ringB].reverse(), options.capColor ?? color, { ...options, normal: axis });
+          this.face(ringA, options.capColor ?? color, { ...options, normal: V3.mul(axis, -1) });
+        }
+      }
+
+      sphere(center, radius, color, options = {}) {
+        const lat = options.lat ?? 8;
+        const lon = options.lon ?? 14;
+        const scale = options.scale ?? [1, 1, 1];
+        const point = (i, j) => {
+          const theta = Math.PI * i / lat;
+          const phi = 2 * Math.PI * j / lon;
+          return [
+            center[0] + radius * scale[0] * Math.sin(theta) * Math.cos(phi),
+            center[1] + radius * scale[1] * Math.cos(theta),
+            center[2] + radius * scale[2] * Math.sin(theta) * Math.sin(phi),
+          ];
+        };
+        for (let i = 0; i < lat; i += 1) {
+          for (let j = 0; j < lon; j += 1) {
+            const quad = [point(i, j), point(i + 1, j), point(i + 1, j + 1), point(i, j + 1)];
+            const middle = V3.mul(quad.reduce((sum, p) => V3.add(sum, p), [0, 0, 0]), 0.25);
+            this.face(quad, color, { ...options, normal: V3.norm(V3.sub(middle, center)), twoSided: true });
+          }
+        }
+      }
+
+      capsule(start, end, rx, ry, color, options = {}) {
+        const direction = V3.sub(end, start);
+        const axis = V3.norm(direction);
+        const across = V3.norm(V3.cross(axis, Math.abs(axis[2]) < 0.8 ? [0, 0, 1] : [1, 0, 0]));
+        const side = V3.cross(axis, across);
+        const middle = V3.add(start, V3.mul(direction, 0.5));
+        const lat = options.lat ?? 7;
+        const lon = options.lon ?? 12;
+        const rings = Array.from({ length: lat + 1 }, (_, i) => Array.from({ length: lon }, (_, j) => {
+          const theta = Math.PI * i / lat;
+          const phi = 2 * Math.PI * j / lon;
+          return V3.add(middle, V3.add(V3.mul(direction, Math.cos(theta) / 2),
+            V3.mul(V3.add(V3.mul(across, rx * Math.cos(phi)), V3.mul(side, ry * Math.sin(phi))), Math.sin(theta))));
+        }));
+        for (let i = 0; i < lat; i += 1) {
+          for (let j = 0; j < lon; j += 1) {
+            const k = (j + 1) % lon;
+            const quad = [rings[i][j], rings[i][k], rings[i + 1][k], rings[i + 1][j]];
+            const center = V3.mul(quad.reduce((sum, p) => V3.add(sum, p), [0, 0, 0]), 0.25);
+            this.face(quad, color, { ...options, normal: V3.norm(V3.sub(center, middle)) });
+          }
+        }
+      }
+
+      line(points, css, width = 1, options = {}) {
+        const screen = [];
+        let depth = 0;
+        for (const point of points) {
+          const projected = this.project(point);
+          if (!projected) return;
+          screen.push(projected);
+          depth += projected[2];
+        }
+        depth /= points.length;
+        const lineWidth = options.world ? Math.max(0.6, options.world * this.focal / depth) : width;
+        const item = { kind: 1, pts: screen, z: options.z ?? depth + (options.bias ?? 0), css, width: lineWidth, dash: options.dash, id: options.id };
+        if (options.glow) this.glows.push(item);
+        else this.items.push(item);
+      }
+
+      coil(a, b, radius, turns, color, wire = 0.035, options = {}) {
+        const axis = V3.sub(b, a);
+        const steps = Math.max(24, Math.round(turns * 16));
+        let previous = null;
+        for (let i = 0; i <= steps; i += 1) {
+          const t = i / steps;
+          const angle = 2 * Math.PI * turns * t;
+          const radial = [Math.cos(angle), 0, Math.sin(angle)];
+          const point = V3.add(V3.add(a, V3.mul(axis, t)), V3.mul(radial, radius));
+          if (previous) {
+            const normal = V3.norm(V3.add(radial, previous.radial));
+            const light = this.ambient + (1 - this.ambient) * Math.max(0, V3.dot(normal, this.light));
+            const facing = V3.dot(normal, V3.norm(V3.sub(this.eye, point)));
+            const k = light * (facing > 0 ? 1 : 0.62) + (facing > 0.75 ? 0.16 : 0);
+            this.line([previous.point, point], rgbCss(color.map(v => Math.min(255, v * k))), 1,
+              { world: wire, id: options.id, bias: -facing * radius * 0.6 });
+          }
+          previous = { point, radial };
+        }
+      }
+
+      shadow(center, rx, rz, alpha = 0.35, options = {}) {
+        const points = [];
+        for (let i = 0; i < 28; i += 1) {
+          const angle = 2 * Math.PI * i / 28;
+          const projected = this.project([center[0] + rx * Math.cos(angle), center[1], center[2] + rz * Math.sin(angle)]);
+          if (!projected) return;
+          points.push(projected);
+        }
+        this.items.push({ kind: 2, pts: points, z: options.z ?? 1e8, alpha, soft: options.soft ?? 10 });
+      }
+
+      glow(point, radius, color, alpha = 1) {
+        const projected = this.project(point);
+        if (!projected) return;
+        this.glows.push({ kind: 3, x: projected[0], y: projected[1], r: Math.max(1, radius * this.focal / projected[2]), color, alpha });
+      }
+
+      beam(a, b, color, intensity, width = 0.05) {
+        if (intensity <= 0.002) return;
+        const start = this.project(a);
+        const end = this.project(b);
+        if (!start || !end) return;
+        const depth = (start[2] + end[2]) / 2;
+        const px = width * this.focal / depth;
+        this.glows.push({ kind: 4, a: start, b: end, color, intensity, px });
+      }
+
+      label(point, text, options = {}) {
+        const projected = this.project(point);
+        if (!projected) return;
+        this.overlay.push({ x: projected[0], y: projected[1], text, ...options });
+      }
+
+      flush() {
+        const ctx = this.ctx;
+        this.items.sort((a, b) => b.z - a.z);
+        this.picks = [];
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
+        for (const item of this.items) {
+          ctx.beginPath();
+          item.pts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])));
+          if (item.kind === 0) {
+            ctx.closePath();
+            ctx.globalAlpha = item.alpha;
+            ctx.fillStyle = rgbCss(item.rgb);
+            ctx.fill();
+            if (item.stroke) {
+              ctx.strokeStyle = item.stroke;
+              ctx.lineWidth = item.strokeWidth ?? 1;
+              ctx.stroke();
+            } else if (item.alpha >= 1) {
+              ctx.strokeStyle = ctx.fillStyle;
+              ctx.lineWidth = 0.7;
+              ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+            if (item.id != null) this.picks.push(item);
+          } else if (item.kind === 1) {
+            ctx.strokeStyle = item.css;
+            ctx.lineWidth = item.width;
+            ctx.setLineDash(item.dash ?? []);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            if (item.id != null && item.width > 3) this.picks.push({ ...item, line: true });
+          } else if (item.kind === 2) {
+            ctx.closePath();
+            ctx.save();
+            ctx.filter = `blur(${item.soft}px)`;
+            ctx.fillStyle = `rgba(0,0,0,${item.alpha})`;
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+        ctx.globalCompositeOperation = "lighter";
+        for (const glow of this.glows) {
+          if (glow.kind === 3) {
+            const gradient = ctx.createRadialGradient(glow.x, glow.y, 0, glow.x, glow.y, glow.r);
+            gradient.addColorStop(0, rgbCss(glow.color, glow.alpha));
+            gradient.addColorStop(0.35, rgbCss(glow.color, glow.alpha * 0.35));
+            gradient.addColorStop(1, rgbCss(glow.color, 0));
+            ctx.fillStyle = gradient;
+            ctx.fillRect(glow.x - glow.r, glow.y - glow.r, glow.r * 2, glow.r * 2);
+          } else if (glow.kind === 4) {
+            const { a, b, color, intensity, px } = glow;
+            for (const [scale, alpha] of [[5, 0.08], [2.4, 0.2], [1, 0.75], [0.35, 1]]) {
+              ctx.beginPath();
+              ctx.moveTo(a[0], a[1]);
+              ctx.lineTo(b[0], b[1]);
+              ctx.strokeStyle = scale < 0.5 ? `rgba(255,255,255,${0.85 * intensity})` : rgbCss(color, alpha * intensity);
+              ctx.lineWidth = Math.max(0.8, px * scale);
+              ctx.stroke();
+            }
+          } else {
+            ctx.beginPath();
+            glow.pts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])));
+            ctx.strokeStyle = glow.css;
+            ctx.lineWidth = glow.width;
+            ctx.stroke();
+          }
+        }
+        ctx.globalCompositeOperation = "source-over";
+        for (const label of this.overlay) this.drawLabel(label);
+      }
+
+      drawLabel({ x, y, text, color = "#dff7ff", border = "rgba(140,190,220,.55)", lift = 26, sub, align = "center", strong }) {
+        const ctx = this.ctx;
+        ctx.font = `${strong ? 750 : 650} 12px system-ui, -apple-system, "Malgun Gothic", sans-serif`;
+        const subWidth = sub ? (ctx.font = "500 11px system-ui, -apple-system, sans-serif", ctx.measureText(sub).width) : 0;
+        ctx.font = `${strong ? 750 : 650} 12px system-ui, -apple-system, "Malgun Gothic", sans-serif`;
+        const width = Math.max(ctx.measureText(text).width, subWidth) + 16;
+        const height = sub ? 34 : 22;
+        const left = align === "left" ? x + 8 : x - width / 2;
+        const top = y - lift - height;
+        if (lift > 0) {
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x, top + height);
+          ctx.strokeStyle = border;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(x, y, 2.4, 0, 2 * Math.PI);
+          ctx.fillStyle = color;
+          ctx.fill();
+        }
+        ctx.beginPath();
+        ctx.roundRect ? ctx.roundRect(left, top, width, height, 7) : ctx.rect(left, top, width, height);
+        ctx.fillStyle = "rgba(7,15,27,.84)";
+        ctx.fill();
+        ctx.strokeStyle = border;
+        ctx.stroke();
+        ctx.fillStyle = color;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.fillText(text, left + 8, top + (sub ? 11 : height / 2 + 0.5));
+        if (sub) {
+          ctx.font = "500 11px system-ui, -apple-system, sans-serif";
+          ctx.fillStyle = "#a9bfd3";
+          ctx.fillText(sub, left + 8, top + 24);
+        }
+      }
+
+      hit(point) {
+        const [x, y] = point;
+        for (let i = this.picks.length - 1; i >= 0; i -= 1) {
+          const item = this.picks[i];
+          if (item.line) {
+            for (let k = 0; k < item.pts.length - 1; k += 1) {
+              const [ax, ay] = item.pts[k];
+              const [bx, by] = item.pts[k + 1];
+              const length = Math.hypot(bx - ax, by - ay) || 1;
+              const t = clamp(((x - ax) * (bx - ax) + (y - ay) * (by - ay)) / length ** 2, 0, 1);
+              if (Math.hypot(x - ax - t * (bx - ax), y - ay - t * (by - ay)) < item.width / 2 + 2) return item.id;
+            }
+            continue;
+          }
+          let inside = false;
+          const pts = item.pts;
+          for (let a = 0, b = pts.length - 1; a < pts.length; b = a, a += 1) {
+            if ((pts[a][1] > y) !== (pts[b][1] > y)
+              && x < (pts[b][0] - pts[a][0]) * (y - pts[a][1]) / (pts[b][1] - pts[a][1]) + pts[a][0]) inside = !inside;
+          }
+          if (inside) return item.id;
+        }
+        return null;
+      }
+
+      floorGrid(size, step, y = 0, color = [26, 44, 66], line = "rgba(120,170,210,.10)") {
+        // 카메라 뒤로 넘어가는 꼭짓점이 없도록 바닥을 작은 타일로 나눈다.
+        const tiles = Math.round(2 * size / step);
+        for (let i = 0; i < tiles; i += 1) {
+          for (let j = 0; j < tiles; j += 1) {
+            const x0 = -size + i * step;
+            const z0 = -size + j * step;
+            const pts = [[x0, y, z0], [x0 + step, y, z0], [x0 + step, y, z0 + step], [x0, y, z0 + step]].map(p => this.project(p));
+            if (pts.some(p => !p)) continue;
+            const fade = clamp(1 - Math.hypot(x0 + step / 2, z0 + step / 2) / size, 0, 1);
+            this.items.push({ kind: 0, z: 1e9, alpha: 1, rgb: this.fogged(color.map(v => v * (0.55 + 0.45 * fade)), pts[0][2]), pts });
+            this.items.push({ kind: 1, z: 9e8, css: line, width: 1, pts: [pts[3], pts[0], pts[1]] });
+          }
+        }
+      }
+    }
+
+    /* ───────── 센서 모델과 판정 로직 (Python simulate.py와 같은 규칙) ───────── */
     const SAMPLE_RATE = 20;
     const SEATED_LOAD = 50;
     const TARE_FRAMES = 5 * SAMPLE_RATE;
@@ -237,6 +1019,10 @@
         return ((state >>> 0) + 0.5) / 4294967296;
       }
       return () => Math.sqrt(-2 * Math.log(uniform())) * Math.cos(2 * Math.PI * uniform());
+    }
+
+    function sensorLoads(weight, x, y, noise) {
+      return SENSORS.map(([sx, sy]) => Math.max(0, weight * (1 + sx * x) * (1 + sy * y) / 4 + 0.5 * noise()));
     }
 
     function makeScenario() {
@@ -267,21 +1053,22 @@
         for (let i = 0; i < count; i++) {
           const x = start[0] + (end[0] - start[0]) * i / count;
           const y = start[1] + (end[1] - start[1]) * i / count;
-          const loads = SENSORS.map(([sx, sy]) =>
-            Math.max(0, weight * (1 + sx * x) * (1 + sy * y) / 4 + 0.5 * noise()));
-          samples.push({phase, loads});
+          samples.push({ phase, loads: sensorLoads(weight, x, y, noise) });
         }
       }
       return samples;
     }
 
-    function analyze(samples, holdSeconds) {
+    // 한 표본씩 판정하는 상태 기계. 시나리오 재생과 직접 앉아보기에서 같은 함수를 쓴다.
+    function createDetector(holdSeconds) {
       const holdFrames = holdSeconds * SAMPLE_RATE;
       let tareSamples = [];
       let baseline = null;
       let filtered = null;
       let steadyStart = null;
-      return samples.map(({phase, loads}, index) => {
+      let index = -1;
+      return (loads, phase) => {
+        index += 1;
         const result = {
           phase, loads, state: "vacant", center: null, baseline: null,
           distance: null, speed: null, elapsed: 0, pwm: 0
@@ -325,239 +1112,304 @@
           result.pwm = Math.round(PWM_MIN + (PWM_MAX - PWM_MIN) * ramp);
         }
         return result;
-      });
+      };
     }
 
+    function analyze(samples, holdSeconds) {
+      const step = createDetector(holdSeconds);
+      return samples.map(({ phase, loads }) => step(loads, phase));
+    }
+
+    /* ───────── 상태 ───────── */
     const STATE_LABELS = {
       vacant: "미착석", calibrating: "기준점 보정 중", balanced: "허용 범위",
       moving: "이동 중", watching: "쏠림 지속 확인 중", alert: "가상 진동 중"
     };
+    const STATE_COLORS = {
+      vacant: "#8ea6bd", calibrating: "#b49cff", balanced: "#4fd1bf",
+      moving: "#7fb2ff", watching: "#f5d061", alert: "#ff9f4a"
+    };
     const byId = id => document.getElementById(id);
     const coordinates = xy => xy ? "(" + xy.map(value => value.toFixed(3)).join(", ") + ")" : "—";
     const samples = makeScenario();
+    const lastSample = samples.length - 1;
     const timeSlider = byId("time");
     const holdSlider = byId("hold");
     const speedSelect = byId("speed");
     const playButton = byId("play");
-    const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
-    const seatScene = byId("seat-scene");
-    const sceneContext = seatScene.getContext("2d");
-    const viewButton = byId("view-angle");
     const stage = byId("seat-stage");
-    const stageState = byId("stage-state");
-    const stageLoads = ["왼쪽 뒤", "오른쪽 뒤", "왼쪽 앞", "오른쪽 앞"].map(name => {
-      const cell = document.createElement("div");
-      cell.className = "stage-load";
-      const label = document.createElement("p");
-      const value = document.createElement("strong");
-      label.append(name, value);
-      const bar = document.createElement("span");
-      bar.className = "load-bar";
-      bar.setAttribute("aria-hidden", "true");
-      const fill = document.createElement("i");
-      bar.append(fill);
-      cell.append(label, bar);
-      byId("stage-loads").append(cell);
-      return {value, fill};
+    const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+    const TRACK_SAMPLES = samples.length;
+
+    let results = [];
+    let mode = "replay";
+    let currentIndex = 0;
+    let playing = false;
+    let playbackFrame = 0;
+    let viewTime = 0;
+    let hoverPart = null;
+    const live = {
+      seated: true, weight: 650, pos: [0.08, -0.06], target: [0.08, -0.06],
+      noise: seededGaussian(7), carry: 0, step: null, frame: null, log: [], centers: [], time: 0,
+    };
+
+    function currentFrame() {
+      return mode === "live" ? live.frame : results[currentIndex];
+    }
+
+    function recentCenters() {
+      if (mode === "live") return live.centers;
+      const list = [];
+      for (let i = Math.max(0, currentIndex - 60); i <= currentIndex; i += 1) if (results[i].center) list.push(results[i].center);
+      return list;
+    }
+
+    /* ───────── 직접 앉아보기 ───────── */
+    function resetLive() {
+      live.step = createDetector(Number(holdSlider.value));
+      live.carry = 0;
+      live.log = [];
+      live.centers = [];
+      live.time = 0;
+      live.frame = live.step(sensorLoads(live.seated ? live.weight : 0, live.pos[0], live.pos[1], live.noise), live.seated ? "직접 조작" : "자리에서 일어남");
+    }
+
+    function liveSample() {
+      const ease = 0.14;
+      live.pos = live.pos.map((value, i) => value + (live.target[i] - value) * ease);
+      const loads = sensorLoads(live.seated ? live.weight : 0, live.pos[0], live.pos[1], live.noise);
+      live.frame = live.step(loads, live.seated ? "직접 조작" : "자리에서 일어남");
+      live.time += 1 / SAMPLE_RATE;
+      live.log.push({ pwm: live.frame.pwm, state: live.frame.state });
+      if (live.log.length > TRACK_SAMPLES) live.log.shift();
+      if (live.frame.center) {
+        live.centers.push(live.frame.center);
+        if (live.centers.length > 60) live.centers.shift();
+      } else {
+        live.centers = [];
+      }
+    }
+
+    function setTarget(x, y) {
+      live.target = [clamp(x, -0.85, 0.85), clamp(y, -0.85, 0.85)];
+      if (!live.seated) setSeated(true);
+    }
+
+    function setSeated(value) {
+      live.seated = value;
+      byId("sit").textContent = value ? "일어나기" : "앉기";
+    }
+
+    /* ───────── 3D 장면 ───────── */
+    const SX = 0.82;
+    const SZ = 0.66;
+    const CUSHION_TOP = 1.17;
+    const palette = {
+      frame: [64, 92, 120], seat: [52, 84, 108], cushion: [44, 150, 138], cushionSide: [36, 116, 108],
+      pants: [64, 106, 168], top: [118, 182, 232], skin: [236, 186, 152], shoes: [40, 52, 82], hair: [48, 50, 80],
+      floor: [18, 32, 50],
+    };
+
+    const scene = new Scene3D(byId("seat-scene"), {
+      view: { yaw: 0.62, pitch: 0.4, dist: 7.6, target: [0, 1.25, 0.1] },
+      minDist: 2.4, maxDist: 16, fov: 0.66,
+      fog: { color: [10, 20, 36], near: 6, far: 18, max: 0.5 },
+      draggable: id => mode === "live" && (id === "cushion" || id === "person"),
+      onDragStart: (id, point, s) => dragTo(point, s),
+      onDrag: (id, point, s) => dragTo(point, s),
+      onDragEnd: () => updateHint(),
+      onHover: id => { hoverPart = id; },
+      onPick: id => {
+        if (mode === "replay" && (id === "cushion" || id === "person")) flashHint();
+      },
     });
+
+    function dragTo(point, s) {
+      const hit = s.rayPlaneY(point, CUSHION_TOP);
+      if (!hit) return;
+      setTarget(hit[0] / SX, hit[2] / SZ);
+      byId("hint").innerHTML = "<b>놓아도</b> 그 자세를 유지합니다 · 거리 0.30을 넘긴 채 가만히 있으면 쏠림 시간이 쌓입니다";
+    }
+
+    function flashHint() {
+      const hint = byId("hint");
+      hint.innerHTML = "방석을 직접 움직이려면 아래 <b>직접 앉아보기</b>를 누르세요";
+      hint.animate?.([{ background: "rgba(79,209,191,.35)" }, { background: "rgba(7,15,27,.72)" }], { duration: 900 });
+    }
+
+    function heatColor(t) {
+      const stops = [[0, [22, 70, 90]], [0.35, [40, 170, 150]], [0.6, [120, 210, 110]], [0.8, [245, 200, 80]], [1, [255, 110, 70]]];
+      for (let i = 1; i < stops.length; i += 1) {
+        if (t <= stops[i][0]) {
+          const [a, ca] = stops[i - 1];
+          const [b, cb] = stops[i];
+          return mix(ca, cb, (t - a) / (b - a));
+        }
+      }
+      return stops[stops.length - 1][1];
+    }
+
+    function drawSeat(frame, now) {
+      if (!frame || !scene.begin()) return;
+      const strength = frame.pwm / PWM_MAX;
+      const shake = strength && !reducedMotion.matches ? 0.03 * strength * Math.sin(now / 1000 * 2 * Math.PI * 9) : 0;
+      scene.floorGrid(9, 0.75, 0, palette.floor, "rgba(120,170,210,.08)");
+      scene.shadow([0, 0.002, 0.15], 1.5, 1.25, 0.55, { soft: 16 });
+
+      // 의자
+      for (const [x, z] of SENSORS) scene.cylinder([0.84 * x, 0, 0.68 * z], [0.84 * x, 0.86, 0.68 * z], 0.055, palette.frame, { segments: 12, gloss: 0.5, shine: 40 });
+      scene.box([0, 0.92, 0], [1.04, 0.07, 0.86], palette.seat, { gloss: 0.25 });
+      for (const x of [-0.8, 0.8]) scene.cylinder([x, 0.95, -0.8], [x, 2.25, -0.86], 0.05, palette.frame, { segments: 12, gloss: 0.5 });
+      scene.box([0, 2.02, -0.86], [0.98, 0.3, 0.06], palette.seat, { gloss: 0.3, rot: Rot.x(-0.06) });
+
+      // 방석과 압력 분포
+      const total = frame.loads.reduce((sum, load) => sum + load, 0);
+      const cx = shake;
+      scene.box([cx, 1.06, 0], [1.0, 0.1, 0.82], palette.cushionSide, { id: "cushion", faces: { top: null }, gloss: 0.15 });
+      const cells = 14;
+      const seated = total >= SEATED_LOAD;
+      const cop = seated ? [0, 1].map(axis => frame.loads.reduce((sum, load, i) => sum + load * SENSORS[i][axis], 0) / total) : null;
+      for (let i = 0; i < cells; i += 1) {
+        for (let j = 0; j < cells; j += 1) {
+          const u0 = -1 + 2 * i / cells;
+          const u1 = u0 + 2 / cells;
+          const v0 = -1 + 2 * j / cells;
+          const v1 = v0 + 2 / cells;
+          const u = (u0 + u1) / 2;
+          const v = (v0 + v1) / 2;
+          let color = palette.cushion;
+          if (seated) {
+            const bilinear = frame.loads.reduce((sum, load, k) => sum + load * (1 + SENSORS[k][0] * u) * (1 + SENSORS[k][1] * v) / 4, 0) / (total / 4);
+            const blob = Math.exp(-(((u - cop[0] * SX) / 0.55) ** 2 + ((v - cop[1] * SZ / 0.82) / 0.5) ** 2));
+            const value = clamp(0.25 * bilinear / 2 + 0.7 * blob * (total / 650), 0, 1);
+            color = heatColor(value);
+          }
+          const bulge = seated ? 0 : 0.012 * (1 - u * u) * (1 - v * v);
+          scene.face([[cx + u0, CUSHION_TOP + bulge, v0 * 0.82], [cx + u1, CUSHION_TOP + bulge, v0 * 0.82], [cx + u1, CUSHION_TOP + bulge, v1 * 0.82], [cx + u0, CUSHION_TOP + bulge, v1 * 0.82]],
+            color, { normal: [0, 1, 0], id: "cushion", gloss: 0.1, bias: -0.02 });
+        }
+      }
+      if (hoverPart === "cushion" && mode === "live") {
+        scene.line([[cx - 1, CUSHION_TOP + 0.005, -0.82], [cx + 1, CUSHION_TOP + 0.005, -0.82], [cx + 1, CUSHION_TOP + 0.005, 0.82], [cx - 1, CUSHION_TOP + 0.005, 0.82], [cx - 1, CUSHION_TOP + 0.005, -0.82]], "rgba(255,255,255,.75)", 1.6, { bias: -0.1 });
+      }
+
+      // 진동 모터와 물결
+      scene.cylinder([cx, 1.0, 0.0], [cx, 1.05, 0.0], 0.12, strength ? [255, 150, 70] : [90, 100, 110], { segments: 16, emissive: Boolean(strength) });
+      if (strength) {
+        const phase = (now / 700) % 1;
+        for (let r = 0; r < 3; r += 1) {
+          const t = (phase + r / 3) % 1;
+          const radius = 0.25 + 1.1 * t;
+          const pts = [];
+          for (let k = 0; k <= 40; k += 1) {
+            const a = 2 * Math.PI * k / 40;
+            pts.push([cx + radius * 1.15 * Math.cos(a), CUSHION_TOP + 0.03, radius * 0.95 * Math.sin(a)]);
+          }
+          scene.line(pts, rgbCss([255, 160, 80], (1 - t) * 0.85 * (0.4 + 0.6 * strength)), 2.2, { glow: true });
+        }
+        scene.glow([cx, CUSHION_TOP, 0], 1.2, [255, 140, 60], 0.35 * strength);
+      }
+
+      // 기준점, 허용 범위, 궤적
+      if (frame.baseline) {
+        const [bx, by] = frame.baseline;
+        const ring = [];
+        for (let k = 0; k <= 48; k += 1) {
+          const a = 2 * Math.PI * k / 48;
+          ring.push([cx + (bx + DISTANCE_LIMIT * Math.cos(a)) * SX, CUSHION_TOP + 0.02, (by + DISTANCE_LIMIT * Math.sin(a)) * SZ]);
+        }
+        scene.line(ring, "rgba(220,255,250,.85)", 1.6, { dash: [5, 4], bias: -0.2 });
+        scene.glow([cx + bx * SX, CUSHION_TOP + 0.02, by * SZ], 0.12, [200, 220, 240], 0.9);
+      }
+      const centers = recentCenters();
+      if (centers.length > 1) {
+        scene.line(centers.map(([x, y]) => [cx + x * SX, CUSHION_TOP + 0.025, y * SZ]), "rgba(79,209,191,.75)", 2, { bias: -0.2 });
+      }
+
+      // FSR 센서와 하중 기둥
+      SENSORS.forEach(([x, z], i) => {
+        const load = frame.loads[i];
+        const ratio = clamp(load / 280, 0, 1.2);
+        const base = [cx + SX * 1.08 * x, 0.97, SZ * 1.15 * z];
+        scene.cylinder([base[0], 0.98, base[2]], [base[0], 1.0, base[2]], 0.1, mix([40, 70, 80], [120, 255, 220], Math.min(1, ratio)), { emissive: true, segments: 14 });
+        const columnBase = [cx + SX * 1.32 * x, CUSHION_TOP, SZ * 1.38 * z];
+        if (ratio > 0.01) {
+          scene.box([columnBase[0], CUSHION_TOP + 0.45 * ratio, columnBase[2]], [0.06, 0.45 * ratio, 0.06], heatColor(clamp(ratio, 0, 1)), { alpha: 0.85, emissive: true, bias: -0.1 });
+          scene.glow([columnBase[0], CUSHION_TOP + 0.9 * ratio, columnBase[2]], 0.18, heatColor(clamp(ratio, 0, 1)), 0.7);
+        }
+        scene.label([columnBase[0], CUSHION_TOP + 0.9 * ratio + 0.08, columnBase[2]], `${load.toFixed(0)} N`, { lift: 0, color: "#c9fff6", border: "rgba(79,209,191,.5)" });
+      });
+
+      // 착석 모형
+      const person = seated ? cop : null;
+      if (person) {
+        const [px, pz] = person;
+        const lx = px * SX;
+        const lz = pz * SZ;
+        const id = "person";
+        const hip = [cx + 0.32 * lx, 1.42, -0.18 + 0.3 * lz];
+        const shoulder = [cx + 1.15 * lx, 2.38, -0.22 + 0.9 * lz];
+        const dir = V3.norm(V3.sub(shoulder, hip));
+        scene.capsule([hip[0], 1.2, hip[2]], [hip[0], 1.55, hip[2] + 0.02], 0.38, 0.28, palette.pants, { id });
+        scene.capsule(hip, shoulder, 0.36, 0.22, palette.top, { id, gloss: 0.1 });
+        const neck = V3.add(shoulder, V3.mul(dir, 0.16));
+        scene.capsule(V3.add(shoulder, V3.mul(dir, -0.05)), V3.add(neck, V3.mul(dir, 0.1)), 0.09, 0.09, palette.skin, { id, lat: 5, lon: 10 });
+        const head = V3.add(neck, V3.mul(dir, 0.3));
+        scene.sphere(head, 0.22, palette.skin, { id, lat: 8, lon: 14, scale: [0.95, 1.08, 1] });
+        scene.sphere(V3.add(head, [0, 0.06, -0.035]), 0.215, palette.hair, { id, lat: 5, lon: 14, scale: [1.02, 0.95, 1.03] });
+        for (const side of [-1, 1]) {
+          const knee = [cx + 0.26 * side + 0.08 * lx, 1.3, 0.98];
+          const ankle = [cx + 0.28 * side, 0.12, 1.08];
+          scene.capsule([hip[0] + 0.22 * side, 1.32, hip[2] + 0.05], knee, 0.17, 0.16, palette.pants, { id });
+          scene.capsule(knee, ankle, 0.14, 0.13, palette.pants, { id });
+          scene.capsule([ankle[0], 0.08, 1.0], [ankle[0], 0.06, 1.38], 0.12, 0.08, palette.shoes, { id });
+          const shoulderSide = [shoulder[0] + 0.36 * side, shoulder[1] - 0.08, shoulder[2]];
+          const elbow = [shoulderSide[0] + 0.12 * side - 0.25 * lx, 1.72, shoulder[2] + 0.28];
+          const hand = [cx + 0.3 * side + 0.08 * lx, 1.42, 0.72];
+          scene.capsule(shoulderSide, elbow, 0.12, 0.11, palette.top, { id });
+          scene.capsule(elbow, hand, 0.09, 0.08, palette.skin, { id });
+        }
+        // 압력 중심 표시
+        const copPoint = [cx + px * SX, CUSHION_TOP + 0.03, pz * SZ];
+        scene.glow(copPoint, 0.35, frame.pwm ? [255, 160, 80] : [79, 209, 191], 0.9);
+        scene.line([copPoint, [copPoint[0], 0.02, copPoint[2]]], "rgba(79,209,191,.0)", 1);
+      }
+      if (mode === "live" && live.seated) {
+        const t = [cx + live.target[0] * SX, CUSHION_TOP + 0.03, live.target[1] * SZ];
+        const ring = [];
+        for (let k = 0; k <= 24; k += 1) {
+          const a = 2 * Math.PI * k / 24;
+          ring.push([t[0] + 0.12 * Math.cos(a), t[1], t[2] + 0.12 * Math.sin(a)]);
+        }
+        scene.line(ring, "rgba(255,159,74,.9)", 1.6, { dash: [3, 3], glow: true });
+      }
+      scene.flush();
+    }
+
+    /* ───────── 화면 갱신 ───────── */
     const fields = Object.fromEntries(
-      ["clock", "state", "phase", "pwm", "elapsed", "distance", "velocity", "center-xy", "baseline-xy",
-        "zone", "baseline", "center", "cursor", "pwm-path", "hold-value", "alert-summary"]
+      ["state", "phase", "pwm", "elapsed", "distance", "velocity", "center-xy", "baseline-xy", "zone", "baseline", "center",
+        "cursor", "pwm-path", "pwm-fill", "hold-value", "alert-summary", "trail", "heat-blob", "target", "clock",
+        "distance-bar", "velocity-bar", "elapsed-bar", "pwm-bar", "hold-mark", "stage-state", "stage-phase", "pwm-badge-value"]
         .map(id => [id, byId(id)])
     );
     const loadFields = SENSORS.map((_, i) => byId("load" + i));
+    const loadBars = SENSORS.map((_, i) => byId("load-bar" + i));
     const sensorDots = SENSORS.map((_, i) => byId("sensor" + i));
-    const lastSample = samples.length - 1;
-    const xOnTimeline = index => 640 * index / samples.length;
-    let results;
-    let currentIndex = 0;
-    let animation = null;
-    let previousTime = null;
-    let playbackFrame = 0;
-    let azimuth = 0.56;
-
-    const dot = (a, b) => a.reduce((total, item, i) => total + item * b[i], 0);
-    const minus = (a, b) => a.map((item, i) => item - b[i]);
-    const cross = ([x, y, z], [u, v, w]) => [y * w - z * v, z * u - x * w, x * v - y * u];
-    const unit = v => v.map(item => item / Math.hypot(...v));
-    const palette = {
-      frame: [75, 109, 137], seat: [60, 98, 121], cushion: [54, 179, 160],
-      pants: [70, 120, 179], top: [127, 185, 233], skin: [236, 186, 152],
-      shoes: [43, 64, 101], hair: [55, 58, 89]
-    };
-    const light = unit([-0.7, 1, 0.9]);
-
-    function drawSeat(frame, seconds) {
-      if (!sceneContext) return;
-      const width = seatScene.clientWidth;
-      const height = seatScene.clientHeight;
-      if (!width || !height) return;
-      const density = Math.min(devicePixelRatio || 1, 2);
-      const pixelsWide = Math.round(width * density);
-      const pixelsHigh = Math.round(height * density);
-      if (seatScene.width !== pixelsWide || seatScene.height !== pixelsHigh) {
-        seatScene.width = pixelsWide;
-        seatScene.height = pixelsHigh;
-      }
-      const ctx = sceneContext;
-      ctx.setTransform(density, 0, 0, density, 0, 0);
-      ctx.clearRect(0, 0, width, height);
-
-      const scale = Math.min(width / 4.5, height / 3.9);
-      const yawSin = Math.sin(azimuth);
-      const yawCos = Math.cos(azimuth);
-      const elevationSin = 0.46;
-      const elevationCos = Math.sqrt(1 - elevationSin ** 2);
-      const camera = [8 * yawSin * elevationCos, 1.52 + 8 * elevationSin, 8 * yawCos * elevationCos];
-      function project([x, y, z]) {
-        const forward = yawSin * x + yawCos * z;
-        const depth = elevationSin * (y - 1.52) + elevationCos * forward;
-        const zoom = scale * 8 / (8 - depth);
-        return [width / 2 + (yawCos * x - yawSin * z) * zoom,
-          height * 0.46 - (elevationCos * (y - 1.52) - elevationSin * forward) * zoom, depth];
-      }
-      function path(points) {
-        ctx.beginPath();
-        points.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
-      }
-      function line(points, stroke, weight = 1) {
-        path(points.map(project));
-        ctx.strokeStyle = stroke;
-        ctx.lineWidth = weight;
-        ctx.stroke();
-      }
-
-      for (let offset = -2.5; offset <= 2.5; offset += 0.5) {
-        line([[offset, 0, -2.5], [offset, 0, 2.5]], "#7a9fb22a");
-        line([[-2.5, 0, offset], [2.5, 0, offset]], "#7a9fb22a");
-      }
-      const [shadowX, shadowY] = project([0, 0, 0.25]);
-      ctx.beginPath();
-      ctx.ellipse(shadowX, shadowY, scale * 1.34, scale * 0.48, 0, 0, 2 * Math.PI);
-      ctx.fillStyle = "#101a2a77";
-      ctx.fill();
-
-      // Collect the visible mesh faces, then paint from farthest to nearest.
-      const faces = [];
-      function face(points, normal, color) {
-        if (dot(normal, minus(camera, points[0])) <= 0) return;
-        const screen = points.map(project);
-        const depth = screen.reduce((total, point) => total + point[2], 0) / screen.length;
-        const shade = 0.61 + 0.41 * Math.max(0, dot(unit(normal), light));
-        faces.push({screen, depth, color: "rgb(" + color.map(value => Math.round(value * shade)).join(",") + ")"});
-      }
-      function box(x, y, z, w, h, d, color) {
-        const points = [[-1,-1,-1], [1,-1,-1], [1,1,-1], [-1,1,-1], [-1,-1,1], [1,-1,1], [1,1,1], [-1,1,1]]
-          .map(([a, b, c]) => [x + a * w / 2, y + b * h / 2, z + c * d / 2]);
-        for (const [corners, normal] of [
-          [[0,1,2,3], [0,0,-1]], [[4,5,6,7], [0,0,1]], [[0,3,7,4], [-1,0,0]],
-          [[1,5,6,2], [1,0,0]], [[0,4,5,1], [0,-1,0]], [[3,2,6,7], [0,1,0]]
-        ]) face(corners.map(index => points[index]), normal, color);
-      }
-      function volume(start, end, radius, thickness, color) {
-        const direction = minus(end, start);
-        const axis = unit(direction);
-        const across = unit(cross(axis, Math.abs(axis[2]) < 0.8 ? [0,0,1] : [1,0,0]));
-        const side = cross(axis, across);
-        const middle = start.map((item, i) => item + direction[i] / 2);
-        const rings = Array.from({length: 7}, (_, lat) => Array.from({length: 10}, (_, lon) => {
-          const theta = Math.PI * lat / 6;
-          const phi = 2 * Math.PI * lon / 10;
-          return middle.map((item, i) => item + direction[i] * Math.cos(theta) / 2 + Math.sin(theta) *
-            (across[i] * radius * Math.cos(phi) + side[i] * thickness * Math.sin(phi)));
-        }));
-        for (let lat = 0; lat < rings.length - 1; lat++) {
-          for (let lon = 0; lon < rings[lat].length; lon++) {
-            const next = (lon + 1) % rings[lat].length;
-            const points = [rings[lat][lon], rings[lat][next], rings[lat + 1][next], rings[lat + 1][lon]];
-            const normal = [0, 1, 2].map(i => points.reduce((sum, p) => sum + p[i] - middle[i], 0));
-            face(points, normal, color);
-          }
-        }
-      }
-
-      for (const [x, z] of SENSORS) box(0.82 * x, 0.44, 0.65 * z, 0.12, 0.88, 0.12, palette.frame);
-      box(0, 0.93, 0, 2.04, 0.18, 1.68, palette.seat);
-      for (const x of [-0.76, 0.76]) box(x, 1.52, -0.76, 0.09, 1.2, 0.1, palette.frame);
-      box(0, 1.97, -0.78, 1.84, 0.67, 0.14, palette.frame);
-      const strength = frame.pwm / PWM_MAX;
-      // Display vibration is tied to scenario time, independently of the physical model.
-      const shake = strength && !reducedMotion.matches ? 0.036 * strength * Math.sin(seconds * 7 * Math.PI) : 0;
-      box(shake, 1.04, 0, 2.07, 0.11, 1.70, palette.seat);
-      box(shake, 1.125, 0, 2.1, 0.13, 1.72, palette.cushion);
-
-      if (frame.center) {
-        const [x, z] = frame.center;
-        const hip = [shake + 0.18 * x, 1.31, 0.14 * z - 0.06];
-        const shoulder = [shake + 0.91 * x, 2.30, 0.55 * z - 0.09];
-        const [sx, sy, sz] = shoulder;
-        volume([hip[0], 1.15, hip[2]], [hip[0], 1.61, hip[2]], 0.36, 0.25, palette.pants);
-        volume(hip, shoulder, 0.38, 0.22, palette.top);
-        volume([sx, sy - 0.12, sz], [sx, sy + 0.16, sz], 0.10, 0.10, palette.skin);
-        volume([sx + 0.08 * x, sy + 0.04, sz], [sx + 0.2 * x, sy + 0.52, sz + 0.02], 0.222, 0.20, palette.skin);
-        volume([sx + 0.2 * x, sy + 0.37, sz - 0.04], [sx + 0.2 * x, sy + 0.55, sz - 0.035], 0.208, 0.18, palette.hair);
-        for (const side of [-1, 1]) {
-          const kneeX = hip[0] + 0.25 * side;
-          volume([kneeX, 1.29, hip[2] - 0.06], [kneeX + 0.03 * side, 1.14, 0.99], 0.16, 0.16, palette.pants);
-          volume([kneeX + 0.03 * side, 1.26, 0.80], [kneeX + 0.02 * side, 0.13, 1.04], 0.145, 0.135, palette.pants);
-          volume([kneeX, 0.20, 0.80], [kneeX + 0.03 * side, 0.15, 1.33], 0.127, 0.115, palette.shoes);
-          const elbow = [sx + 0.40 * side, 1.67, sz + 0.26];
-          volume([sx + 0.29 * side, sy - 0.09, sz], elbow, 0.126, 0.12, palette.top);
-          volume(elbow, [kneeX + 0.07 * side, 1.34, 0.66], 0.096, 0.086, palette.skin);
-        }
-      }
-
-      faces.sort((a, b) => a.depth - b.depth);
-      for (const surface of faces) {
-        path(surface.screen);
-        ctx.closePath();
-        ctx.fillStyle = ctx.strokeStyle = surface.color;
-        ctx.lineWidth = 0.65;
-        ctx.fill();
-        ctx.stroke();
-      }
-
-      SENSORS.forEach(([x, z], i) => {
-        const ratio = Math.min(1, frame.loads[i] / 280);
-        const point = [shake + 0.94 * x, 1.195, 0.75 * z];
-        const top = [point[0], point[1] + 0.48 * ratio, point[2]];
-        line([point, top], "#98f5de", 1.4);
-        const [cx, cy] = project(top);
-        ctx.beginPath();
-        ctx.arc(cx, cy, 3 + 3 * ratio, 0, 2 * Math.PI);
-        ctx.fillStyle = ratio > 0.03 ? "#adfae6" : "#335c6a";
-        ctx.fill();
-        ctx.strokeStyle = "#aaf5e7";
-        ctx.lineWidth = 1;
-        ctx.stroke();
-      });
-
-      if (strength) {
-        for (const side of [-1, 1]) {
-          const count = 1 + Math.round(strength * 2);
-          for (let i = 0; i < count; i++) {
-            const offset = 0.13 * i + Math.abs(shake) * 2;
-            line([[side * (1.22 + offset), 1.37, 0.04], [side * (1.31 + offset), 1.23, 0.04],
-              [side * (1.31 + offset), 1.07, 0.04], [side * (1.22 + offset), 0.92, 0.04]], "#ffc183", 1.8);
-          }
-        }
-      }
-    }
+    const mapX = x => 120 + 82 * x;
+    const mapY = y => 120 - 82 * y;
 
     function showPoint(element, xy) {
       element.setAttribute("visibility", xy ? "visible" : "hidden");
       if (!xy) return;
-      element.setAttribute("cx", 120 + 82 * xy[0]);
-      element.setAttribute("cy", 120 - 82 * xy[1]);
+      element.setAttribute("cx", mapX(xy[0]));
+      element.setAttribute("cy", mapY(xy[1]));
     }
 
-    function showFrame(index) {
-      currentIndex = index;
-      const frame = results[index];
-      const seconds = index / SAMPLE_RATE;
-      timeSlider.value = seconds;
-      timeSlider.setAttribute("aria-valuetext", seconds.toFixed(2) + "초");
-      fields.clock.textContent = seconds.toFixed(2) + "초";
+    function renderReadouts() {
+      const frame = currentFrame();
+      if (!frame) return;
+      const hold = Number(holdSlider.value);
       fields.state.textContent = STATE_LABELS[frame.state];
       fields.state.dataset.state = frame.state;
       fields.phase.textContent = frame.phase;
@@ -567,101 +1419,262 @@
       fields.velocity.textContent = frame.speed === null ? "—" : frame.speed.toFixed(3) + " /s";
       fields["center-xy"].textContent = coordinates(frame.center);
       fields["baseline-xy"].textContent = coordinates(frame.baseline);
+      fields["distance-bar"].style.width = `${clamp((frame.distance ?? 0) / 0.6, 0, 1) * 100}%`;
+      fields["distance-bar"].style.setProperty("--fill", (frame.distance ?? 0) > DISTANCE_LIMIT ? "var(--watch)" : "var(--accent)");
+      fields["velocity-bar"].style.width = `${clamp((frame.speed ?? 0) / 0.3, 0, 1) * 100}%`;
+      fields["velocity-bar"].style.setProperty("--fill", (frame.speed ?? 0) > SPEED_LIMIT ? "var(--move)" : "var(--accent)");
+      fields["elapsed-bar"].style.width = `${clamp(frame.elapsed / hold, 0, 1) * 100}%`;
+      fields["elapsed-bar"].style.setProperty("--fill", frame.state === "alert" ? "var(--alert)" : "var(--watch)");
+      fields["pwm-bar"].style.width = `${frame.pwm / 255 * 100}%`;
+      fields["stage-state"].textContent = frame.pwm ? `가상 진동 · PWM ${frame.pwm}` : STATE_LABELS[frame.state];
+      fields["stage-state"].style.setProperty("--state", STATE_COLORS[frame.state]);
+      fields["stage-phase"].textContent = frame.phase;
+      fields["pwm-badge-value"].textContent = frame.pwm;
       stage.dataset.alert = String(frame.pwm > 0);
-      stageState.textContent = frame.pwm ? "가상 진동 · PWM " + frame.pwm : STATE_LABELS[frame.state];
-      drawSeat(frame, seconds);
       showPoint(fields.zone, frame.baseline);
       showPoint(fields.baseline, frame.baseline);
       showPoint(fields.center, frame.center);
+      showPoint(fields["heat-blob"], frame.center);
+      fields.center.setAttribute("fill", frame.pwm ? "#ff9f4a" : "#4fd1bf");
+      showPoint(fields.target, mode === "live" && live.seated ? live.target : null);
+      fields.trail.setAttribute("points", recentCenters().map(([x, y]) => `${mapX(x).toFixed(1)},${mapY(y).toFixed(1)}`).join(" "));
       frame.loads.forEach((load, i) => {
         loadFields[i].textContent = load.toFixed(1) + " N";
+        loadBars[i].style.width = Math.min(100, load / 2.8) + "%";
         sensorDots[i].setAttribute("fill-opacity", 0.12 + 0.88 * Math.min(1, load / 250));
-        stageLoads[i].value.textContent = load.toFixed(1) + " N";
-        stageLoads[i].fill.style.width = Math.min(100, load / 2.8) + "%";
+        sensorDots[i].setAttribute("r", 4 + 5 * Math.min(1, load / 250));
       });
-      fields.cursor.setAttribute("x1", xOnTimeline(index));
-      fields.cursor.setAttribute("x2", xOnTimeline(index));
+      const seconds = mode === "live" ? live.time : currentIndex / SAMPLE_RATE;
+      if (mode === "replay") {
+        timeSlider.value = seconds;
+        timeSlider.setAttribute("aria-valuetext", seconds.toFixed(2) + "초");
+        fields.clock.textContent = seconds.toFixed(2) + "초";
+        const x = 640 * currentIndex / TRACK_SAMPLES;
+        fields.cursor.setAttribute("x1", x);
+        fields.cursor.setAttribute("x2", x);
+      } else {
+        drawTrack(live.log);
+        fields.cursor.setAttribute("x1", 640 * live.log.length / TRACK_SAMPLES);
+        fields.cursor.setAttribute("x2", 640 * live.log.length / TRACK_SAMPLES);
+      }
+    }
+
+    function drawTrack(series) {
+      const pwmY = pwm => 102 - 96 * pwm / PWM_MAX;
+      const xOf = index => 640 * index / TRACK_SAMPLES;
+      if (!series.length) {
+        fields["pwm-path"].setAttribute("d", "");
+        fields["pwm-fill"].setAttribute("d", "");
+        byId("state-bands").replaceChildren();
+        return;
+      }
+      let path = "M0 " + pwmY(series[0].pwm);
+      series.forEach(({ pwm }, index) => {
+        if (index && pwm !== series[index - 1].pwm) path += " H" + xOf(index) + " V" + pwmY(pwm);
+      });
+      path += " H" + xOf(series.length);
+      fields["pwm-path"].setAttribute("d", path);
+      fields["pwm-fill"].setAttribute("d", path + " V102 H0 Z");
+      const bands = [];
+      let start = 0;
+      for (let i = 1; i <= series.length; i += 1) {
+        if (i === series.length || series[i].state !== series[start].state) {
+          const state = series[start].state;
+          if (state === "watching" || state === "alert") {
+            const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            rect.setAttribute("x", xOf(start));
+            rect.setAttribute("width", xOf(i) - xOf(start));
+            rect.setAttribute("y", 0);
+            rect.setAttribute("height", 108);
+            rect.setAttribute("fill", state === "alert" ? "rgba(255,159,74,.12)" : "rgba(245,208,97,.08)");
+            bands.push(rect);
+          }
+          start = i;
+        }
+      }
+      byId("state-bands").replaceChildren(...bands);
     }
 
     function recompute() {
-      const holdSeconds = Number(holdSlider.value);
-      results = analyze(samples, holdSeconds);
-      fields["hold-value"].textContent = holdSeconds + "초";
-      holdSlider.setAttribute("aria-valuetext", holdSeconds + "초");
-      const pwmY = pwm => 102 - 96 * pwm / PWM_MAX;
-      let path = "M0 " + pwmY(results[0].pwm);
-      results.forEach(({pwm}, index) => {
-        if (index && pwm !== results[index - 1].pwm) {
-          path += " H" + xOnTimeline(index) + " V" + pwmY(pwm);
-        }
-      });
-      fields["pwm-path"].setAttribute("d", path + " H640");
+      const hold = Number(holdSlider.value);
+      results = analyze(samples, hold);
+      fields["hold-value"].textContent = hold + "초";
+      fields["hold-mark"].dataset.label = hold + "초";
+      holdSlider.setAttribute("aria-valuetext", hold + "초");
+      if (mode === "replay") drawTrack(results);
       const alertIndex = results.findIndex(frame => frame.state === "alert");
-      fields["alert-summary"].textContent = alertIndex === -1 ?
-        "이 조건에서는 알림이 켜지지 않습니다." :
-        (alertIndex / SAMPLE_RATE).toFixed(2) + "초에 첫 알림이 켜집니다.";
-      showFrame(currentIndex);
+      fields["alert-summary"].textContent = mode === "live" ? "직접 앉아보기 기록 (최근 64초)" : alertIndex === -1
+        ? "이 조건에서는 알림이 켜지지 않습니다."
+        : (alertIndex / SAMPLE_RATE).toFixed(2) + "초에 첫 알림이 켜집니다.";
+      if (mode === "live") resetLive();
+      scene.dirty = true;
+      renderReadouts();
     }
 
-    function pause() {
-      if (animation !== null) cancelAnimationFrame(animation);
-      animation = null;
-      previousTime = null;
-      playButton.textContent = "재생";
-    }
-
-    function tick(timestamp) {
-      if (previousTime !== null) {
-        playbackFrame += (timestamp - previousTime) / 1000 * Number(speedSelect.value) * SAMPLE_RATE;
+    /* ───────── 재생 ───────── */
+    function setPlaying(value) {
+      playing = value;
+      playButton.textContent = playing ? "일시정지" : (mode === "live" ? "계속" : "재생");
+      if (playing && mode === "replay") {
+        if (currentIndex >= lastSample) currentIndex = 0;
+        playbackFrame = currentIndex;
       }
-      previousTime = timestamp;
-      const next = Math.min(lastSample, Math.floor(playbackFrame));
-      if (next !== currentIndex) showFrame(next);
-      if (next === lastSample) {
-        pause();
-        return;
-      }
-      animation = requestAnimationFrame(tick);
     }
 
     function seek(seconds) {
-      pause();
-      showFrame(Math.min(lastSample, Math.round(seconds * SAMPLE_RATE)));
+      setPlaying(false);
+      currentIndex = clamp(Math.round(seconds * SAMPLE_RATE), 0, lastSample);
+      scene.dirty = true;
+      renderReadouts();
     }
 
-    function startPlayback() {
-      if (currentIndex === lastSample) showFrame(0);
-      playbackFrame = currentIndex;
-      playButton.textContent = "일시정지";
-      animation = requestAnimationFrame(tick);
+    function setMode(next) {
+      if (next === mode) return;
+      mode = next;
+      document.body.dataset.mode = mode;
+      byId("mode-replay").setAttribute("aria-pressed", String(mode === "replay"));
+      byId("mode-live").setAttribute("aria-pressed", String(mode === "live"));
+      const chip = byId("mode-chip");
+      chip.textContent = mode === "live" ? "직접 앉아보기" : "시나리오 재생";
+      chip.classList.toggle("live", mode === "live");
+      byId("x-labels").innerHTML = mode === "live"
+        ? "<span>64초 전</span><span></span><span></span><span></span><span>지금</span>"
+        : "<span>0초</span><span>16초</span><span>32초</span><span>48초</span><span>64초</span>";
+      byId("map-hint").textContent = mode === "live" ? "지도를 눌러도 압력 중심을 옮길 수 있습니다" : "위에서 본 방석";
+      if (mode === "live") {
+        live.pos = [0.08, -0.06];
+        live.target = [0.08, -0.06];
+        setSeated(true);
+        resetLive();
+        setPlaying(true);
+      } else {
+        setPlaying(!reducedMotion.matches);
+      }
+      recompute();
+      updateHint();
     }
 
-    playButton.addEventListener("click", () => animation === null ? startPlayback() : pause());
-    viewButton.addEventListener("click", () => {
-      azimuth = -azimuth;
-      viewButton.setAttribute("aria-pressed", String(azimuth < 0));
-      drawSeat(results[currentIndex], currentIndex / SAMPLE_RATE);
-    });
+    function updateHint() {
+      byId("hint").innerHTML = mode === "live"
+        ? "<b>방석을 드래그</b>해 압력 중심을 옮기세요 · 처음 5초는 기준점 보정 · <b>빈 곳 드래그</b> 회전"
+        : "<b>드래그</b> 회전 · <b>클릭 후 휠/핀치</b> 확대 · <b>직접 앉아보기</b>에서는 방석을 끌어 압력 중심을 옮깁니다";
+    }
+
+    let previous = performance.now();
+    let readoutTick = 0;
+    function loop(now) {
+      const dt = Math.min(0.1, (now - previous) / 1000);
+      previous = now;
+      let changed = scene.update(dt);
+      let dataChanged = false;
+      if (playing) {
+        const speed = Number(speedSelect.value);
+        if (mode === "replay") {
+          playbackFrame += dt * speed * SAMPLE_RATE;
+          const next = Math.min(lastSample, Math.floor(playbackFrame));
+          if (next !== currentIndex) {
+            currentIndex = next;
+            dataChanged = true;
+          }
+          if (next === lastSample) setPlaying(false);
+        } else {
+          live.carry += dt * speed * SAMPLE_RATE;
+          while (live.carry >= 1) {
+            live.carry -= 1;
+            liveSample();
+            dataChanged = true;
+          }
+        }
+      }
+      const frame = currentFrame();
+      if (frame && frame.pwm) changed = true;
+      if (dataChanged || changed) drawSeat(frame, now);
+      if (dataChanged) {
+        readoutTick += 1;
+        if (mode === "replay" || readoutTick % 2 === 0) renderReadouts();
+      }
+      requestAnimationFrame(loop);
+    }
+
+    playButton.addEventListener("click", () => setPlaying(!playing));
+    byId("mode-replay").addEventListener("click", () => setMode("replay"));
+    byId("mode-live").addEventListener("click", () => setMode("live"));
     byId("reset").addEventListener("click", () => {
-      seek(0);
       speedSelect.value = "2";
       holdSlider.value = "15";
-      azimuth = 0.56;
-      viewButton.setAttribute("aria-pressed", "false");
-      recompute();
+      scene.setView(scene.home);
+      if (mode === "live") {
+        live.pos = [0.08, -0.06];
+        live.target = [0.08, -0.06];
+        setSeated(true);
+        recompute();
+      } else {
+        seek(0);
+        recompute();
+      }
     });
     timeSlider.addEventListener("input", () => seek(Number(timeSlider.value)));
     holdSlider.addEventListener("input", recompute);
     document.querySelectorAll("[data-time]").forEach(button => {
       button.addEventListener("click", () => seek(Number(button.dataset.time)));
     });
+    byId("track").addEventListener("click", event => {
+      if (mode !== "replay") return;
+      const box = event.currentTarget.getBoundingClientRect();
+      seek((event.clientX - box.left) / box.width * TRACK_SAMPLES / SAMPLE_RATE);
+    });
+    byId("sit").addEventListener("click", () => setSeated(!live.seated));
+    byId("center").addEventListener("click", () => setTarget(0.08, -0.06));
+    document.querySelectorAll("[data-lean]").forEach(button => {
+      button.addEventListener("click", () => {
+        if (button.dataset.lean === "right") setTarget(0.54, 0.02);
+        else setTarget(0.06, 0.5);
+      });
+    });
+    byId("weight").addEventListener("input", event => {
+      live.weight = event.target.valueAsNumber;
+      byId("weight-value").textContent = live.weight + " N";
+    });
+    const map = byId("map");
+    const mapPoint = event => {
+      const box = map.getBoundingClientRect();
+      const x = (event.clientX - box.left) / box.width * 240;
+      const y = (event.clientY - box.top) / box.height * 240;
+      setTarget((x - 120) / 82, (120 - y) / 82);
+      scene.dirty = true;
+    };
+    let mapDragging = false;
+    map.addEventListener("pointerdown", event => {
+      if (mode !== "live") return;
+      mapDragging = true;
+      try { map.setPointerCapture(event.pointerId); } catch (error) { /* 무시 */ }
+      mapPoint(event);
+    });
+    map.addEventListener("pointermove", event => { if (mapDragging) mapPoint(event); });
+    map.addEventListener("pointerup", () => { mapDragging = false; });
+    map.addEventListener("pointercancel", () => { mapDragging = false; });
+
+    const VIEWS = {
+      home: () => scene.home,
+      front: () => ({ yaw: 0, pitch: 0.18, dist: 7, target: [0, 1.4, 0] }),
+      back: () => ({ yaw: Math.PI - 0.6, pitch: 0.42, dist: 7.4, target: [0, 1.3, 0] }),
+      top: () => ({ yaw: 0.001, pitch: 1.42, dist: 6.2, target: [0, 1.1, 0] }),
+    };
+    document.querySelectorAll("[data-view]").forEach(button => {
+      button.addEventListener("click", () => scene.setView(VIEWS[button.dataset.view]()));
+    });
+    byId("zoom-in").addEventListener("click", () => scene.zoom(0.82));
+    byId("zoom-out").addEventListener("click", () => scene.zoom(1.22));
+    reducedMotion.addEventListener("change", event => {
+      if (event.matches && mode === "replay") setPlaying(false);
+    });
+    window.addEventListener("resize", () => { scene.dirty = true; });
+
     timeSlider.max = lastSample / SAMPLE_RATE;
     recompute();
-    if (window.ResizeObserver) {
-      const resize = new ResizeObserver(() => drawSeat(results[currentIndex], currentIndex / SAMPLE_RATE));
-      resize.observe(seatScene);
-    }
-    if (!reducedMotion.matches) startPlayback();
+    updateHint();
+    setPlaying(!reducedMotion.matches);
+    requestAnimationFrame(loop);
   </script>
 </body>
 </html>
